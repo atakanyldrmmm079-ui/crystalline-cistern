@@ -1,0 +1,1211 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Space+Grotesk:wght@300;400;500&display=swap");
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  background: #020607;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body {
+  font-family: "Inter", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.site {
+  --mx: 50%;
+  --my: 50%;
+  position: relative;
+  width: 100%;
+  min-height: 520vh;
+  color: white;
+  background: #020607;
+}
+
+.viewport {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(105, 255, 235, 0.095), transparent 26%),
+    radial-gradient(circle at 50% 78%, rgba(60, 255, 200, 0.075), transparent 30%),
+    radial-gradient(circle at 18% 70%, rgba(80, 255, 170, 0.035), transparent 26%),
+    #020607;
+}
+
+.viewport::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background:
+    radial-gradient(circle at var(--mx) var(--my), rgba(150, 255, 240, 0.065), transparent 17%),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.015), transparent 22%, rgba(0, 0, 0, 0.28));
+  mix-blend-mode: screen;
+}
+
+canvas {
+  position: absolute;
+  inset: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  display: block;
+}
+
+.scroll-space {
+  height: 520vh;
+  pointer-events: none;
+}
+
+.noise {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0.045;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
+  background-size: 90px 90px;
+  mask-image: radial-gradient(circle at center, black 10%, transparent 84%);
+}
+
+.shade {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background:
+    radial-gradient(circle at 50% 43%, transparent 0%, rgba(2, 6, 7, 0.08) 34%, rgba(2, 6, 7, 0.62) 92%),
+    linear-gradient(to bottom, rgba(2, 6, 7, 0.02), rgba(2, 6, 7, 0.3) 72%, rgba(2, 6, 7, 0.68)),
+    linear-gradient(90deg, rgba(2, 6, 7, 0.58), transparent 24%, transparent 72%, rgba(2, 6, 7, 0.58));
+}
+
+/* DESIGN MODE */
+
+.designToggle {
+  pointer-events: auto;
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 9999;
+  width: auto;
+  padding: 11px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(130, 255, 240, 0.25);
+  background: rgba(3, 14, 14, 0.58);
+  color: rgba(220, 255, 250, 0.72);
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  cursor: pointer;
+}
+
+.designToggle.active {
+  color: rgba(255, 255, 255, 0.95);
+  border-color: rgba(130, 255, 240, 0.65);
+  box-shadow: 0 0 28px rgba(120, 255, 230, 0.18);
+}
+
+/* REALISTIC WET GLASS RAIN */
+
+.rainGlass {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  opacity: var(--rainOpacity);
+  overflow: hidden;
+  mix-blend-mode: screen;
+}
+
+.rainGlass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.055), transparent 14%),
+    radial-gradient(circle at 76% 18%, rgba(120, 255, 235, 0.055), transparent 18%),
+    radial-gradient(circle at 42% 72%, rgba(255, 255, 255, 0.035), transparent 20%);
+  filter: blur(10px);
+  opacity: 0.55;
+}
+
+.rainStreaks,
+.slidingDroplets {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.rainStreaks span {
+  position: absolute;
+  top: -180px;
+  width: 1px;
+  transform-origin: top center;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    rgba(180, 255, 246, 0.34),
+    rgba(180, 255, 246, 0.02)
+  );
+  box-shadow:
+    0 0 8px rgba(140, 255, 240, 0.16),
+    0 0 18px rgba(140, 255, 240, 0.06);
+  animation-name: rainFall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes rainFall {
+  0% {
+    transform: translate3d(0, -20vh, 0) rotate(10deg);
+  }
+
+  100% {
+    transform: translate3d(-90px, 130vh, 0) rotate(10deg);
+  }
+}
+
+.wetDrop {
+  position: absolute;
+  width: calc(22px * var(--s));
+  height: calc(48px * var(--s));
+  border-radius: 58% 42% 62% 38% / 46% 38% 62% 54%;
+  opacity: 0;
+  animation: wetSlide var(--speed) ease-in infinite;
+  animation-delay: var(--delay);
+  transform: translate3d(0, 0, 0);
+  backdrop-filter: blur(var(--dropletBlur));
+  -webkit-backdrop-filter: blur(var(--dropletBlur));
+  background:
+    radial-gradient(circle at 35% 18%, rgba(255, 255, 255, 0.55), transparent 12%),
+    radial-gradient(circle at 63% 70%, rgba(150, 255, 240, 0.22), transparent 48%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.018));
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    inset 0 2px 8px rgba(255, 255, 255, 0.16),
+    inset 0 -10px 18px rgba(20, 255, 220, 0.05),
+    0 0 24px rgba(120, 255, 235, 0.07);
+}
+
+.wetDrop::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: calc(-1 * var(--trail));
+  width: calc(5px * var(--s));
+  height: var(--trail);
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    rgba(190, 255, 246, 0),
+    rgba(190, 255, 246, calc(var(--dropletTrailOpacity) * 0.18)),
+    rgba(255, 255, 255, calc(var(--dropletTrailOpacity) * 0.28))
+  );
+  filter: blur(5px);
+  opacity: 0.8;
+}
+
+.wetDrop::after {
+  content: "";
+  position: absolute;
+  left: 28%;
+  top: 16%;
+  width: 18%;
+  height: 22%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.38);
+  filter: blur(1px);
+}
+
+@keyframes wetSlide {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -10vh, 0) scale(var(--s));
+  }
+
+  10% {
+    opacity: var(--dropOpacity);
+  }
+
+  72% {
+    opacity: calc(var(--dropOpacity) * 0.76);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--drift), 135vh, 0) scale(calc(var(--s) * 0.9));
+  }
+}
+
+/* MOUSE RIPPLE */
+
+.mouseTrail {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  mix-blend-mode: screen;
+}
+
+.mouseTrail span {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle, rgba(210, 255, 248, 0.35), rgba(120, 255, 230, 0.09), transparent 72%);
+  animation: trailFade 1.05s ease-out forwards;
+}
+
+@keyframes trailFade {
+  0% {
+    opacity: 0.75;
+    width: 10px;
+    height: 10px;
+    filter: blur(0);
+  }
+
+  100% {
+    opacity: 0;
+    width: 135px;
+    height: 135px;
+    filter: blur(9px);
+  }
+}
+
+/* UI */
+
+.interface {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  padding: 30px 44px;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.34em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.navPill {
+  display: flex;
+  gap: 22px;
+  padding: 10px 16px;
+  border: 1px solid rgba(170, 255, 240, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.032);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.hero {
+  position: absolute;
+  left: 54px;
+  bottom: 62px;
+  max-width: 500px;
+  transition:
+    opacity 0.65s ease,
+    transform 0.65s ease,
+    filter 0.65s ease;
+}
+
+.kicker {
+  margin: 0 0 14px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.38em;
+  color: rgba(148, 255, 241, 0.78);
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(50px, 5.1vw, 82px);
+  line-height: 0.84;
+  letter-spacing: -0.075em;
+  font-weight: 300;
+}
+
+.hero p:not(.kicker) {
+  max-width: 450px;
+  margin: 22px 0 0;
+  font-size: 13px;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.introSignal {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.28em;
+  color: rgba(160, 255, 244, 0.58);
+}
+
+.introSignal span {
+  width: 42px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(130, 255, 240, 0), rgba(130, 255, 240, 0.75), rgba(130, 255, 240, 0));
+  box-shadow: 0 0 12px rgba(130, 255, 240, 0.5);
+}
+
+/* LEGACY HTML INFO PANEL
+   Yeni active-style App.jsx iÃ§inde ana info panel Three.js iÃ§inden gelir.
+   Bu blok sadece eski InfoPanel hÃ¢lÃ¢ render edilirse bozulmasÄ±n diye tutuldu. */
+
+.readout {
+  pointer-events: auto;
+  position: absolute;
+  top: 50%;
+  min-height: 455px;
+  padding: 26px;
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at var(--mx) var(--my), rgba(255, 255, 255, 0.17), transparent 18%),
+    linear-gradient(
+      145deg,
+      rgba(230, 255, 252, var(--panelOpacity, 0.08)),
+      rgba(255, 255, 255, 0.055) 42%,
+      rgba(0, 22, 22, 0.2)
+    );
+  border: 1px solid color-mix(in srgb, var(--accent), transparent 58%);
+  backdrop-filter: blur(var(--panelBlur, 22px)) saturate(155%) contrast(112%);
+  -webkit-backdrop-filter: blur(var(--panelBlur, 22px)) saturate(155%) contrast(112%);
+  box-shadow:
+    0 44px 140px rgba(0, 0, 0, 0.68),
+    0 0 46px color-mix(in srgb, var(--accent), transparent 84%),
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -1px 0 rgba(120, 255, 240, 0.16),
+    inset 18px 0 45px rgba(255, 255, 255, 0.045),
+    inset -20px 0 50px rgba(0, 255, 230, 0.06);
+  overflow: hidden;
+  transform-style: preserve-3d;
+}
+
+.readout::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 25% 8%, rgba(255, 255, 255, 0.22), transparent 28%),
+    radial-gradient(circle at 72% 24%, color-mix(in srgb, var(--accent), transparent 74%), transparent 24%),
+    linear-gradient(115deg, rgba(255, 255, 255, 0.16), transparent 24%, rgba(255, 255, 255, 0.035) 50%, transparent 72%);
+  opacity: 0.82;
+  mix-blend-mode: screen;
+}
+
+.readout::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 18px 18px;
+  opacity: var(--panelNoise, 0.16);
+  mix-blend-mode: screen;
+}
+
+.readout > * {
+  position: relative;
+  z-index: 2;
+}
+
+.glassPreview {
+  position: relative;
+  height: 112px;
+  margin-bottom: 26px;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background:
+    radial-gradient(circle at 50% 55%, color-mix(in srgb, var(--accent), transparent 58%), transparent 28%),
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.14), transparent 22%),
+    rgba(0, 0, 0, 0.24);
+  box-shadow:
+    inset 0 0 35px rgba(255, 255, 255, 0.04),
+    inset 0 -20px 50px rgba(0, 0, 0, 0.24);
+}
+
+.glassPreview span {
+  position: absolute;
+  right: 16px;
+  top: 14px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+}
+
+.glassCore {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.62), color-mix(in srgb, var(--accent), transparent 42%) 30%, transparent 66%);
+  filter: blur(8px);
+  opacity: 0.58;
+}
+
+.readoutTop {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 25px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  color: rgba(220, 255, 250, 0.52);
+}
+
+.readoutTop b {
+  color: var(--accent);
+  font-weight: 400;
+}
+
+.readout h2 {
+  margin: 0;
+  max-width: 300px;
+  font-size: 35px;
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.readout p {
+  margin: 21px 0 0;
+  max-width: 300px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.stats {
+  margin: 27px 0 24px;
+  display: grid;
+  gap: 12px;
+}
+
+.stats div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.stats b {
+  color: var(--accent);
+  font-weight: 400;
+}
+
+button {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent), transparent 52%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(229, 255, 251, 0.9);
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+button:hover {
+  background: color-mix(in srgb, var(--accent), transparent 88%);
+  border-color: color-mix(in srgb, var(--accent), transparent 25%);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--accent), transparent 84%);
+}
+
+/* MAP */
+
+.energyMap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  transition: 0.45s ease;
+}
+
+.energyMap.visible {
+  pointer-events: auto;
+}
+
+.istanbulOutline {
+  pointer-events: none;
+  fill: rgba(120, 255, 235, 0.025);
+  stroke: rgba(180, 255, 246, 0.14);
+  stroke-width: 0.22;
+  filter: url(#svgGlow);
+}
+
+.istanbulWater {
+  pointer-events: none;
+  fill: none;
+  stroke: rgba(120, 255, 235, 0.09);
+  stroke-width: 0.18;
+  stroke-dasharray: 0.8 1.4;
+}
+
+.mapLine {
+  pointer-events: none;
+  fill: none;
+  stroke: rgba(160, 255, 244, 0.15);
+  stroke-width: 0.13;
+  filter: url(#svgGlow);
+  transition: 0.35s ease;
+}
+
+.mapLine.active {
+  stroke: rgba(190, 255, 248, 0.78);
+  stroke-width: 0.22;
+  stroke-dasharray: 1.8 2.8;
+  animation: lineFlow 1.2s linear infinite;
+}
+
+.energyMap.fullNetwork .mapLine {
+  stroke: rgba(225, 255, 250, 0.9);
+  stroke-width: 0.26;
+}
+
+.flowDot {
+  fill: rgba(230, 255, 252, 0.96);
+  filter: drop-shadow(0 0 7px rgba(150, 255, 244, 0.9));
+}
+
+.mapNode {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.mapNode > circle:first-of-type {
+  fill: rgba(180, 255, 247, 0.42);
+  stroke: rgba(230, 255, 252, 0.35);
+  stroke-width: 0.15;
+  filter: drop-shadow(0 0 5px rgba(150, 255, 244, 0.45));
+}
+
+.mapNodeHalo {
+  fill: transparent;
+  stroke: rgba(160, 255, 244, 0.18);
+  stroke-width: 0.12;
+}
+
+.mapNode.active > circle:first-of-type {
+  fill: rgba(255, 255, 255, 0.92);
+  stroke: rgba(170, 255, 244, 0.9);
+  filter:
+    drop-shadow(0 0 7px rgba(255, 255, 255, 0.85))
+    drop-shadow(0 0 16px rgba(100, 255, 230, 0.78));
+}
+
+.mapNode.active .mapNodeHalo {
+  stroke: rgba(180, 255, 244, 0.48);
+  animation: nodePulse 1.8s ease-in-out infinite;
+}
+
+.mapNode text {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 2px;
+  letter-spacing: 0.14em;
+  fill: rgba(230, 255, 252, 0.46);
+  opacity: 0;
+  transition: 0.25s ease;
+}
+
+.mapNode:hover text,
+.mapNode.active text {
+  opacity: 1;
+  fill: rgba(235, 255, 252, 0.82);
+}
+
+@keyframes lineFlow {
+  to {
+    stroke-dashoffset: -9;
+  }
+}
+
+@keyframes nodePulse {
+  0% {
+    r: 2.2;
+    opacity: 0.28;
+  }
+
+  100% {
+    r: 4.2;
+    opacity: 0;
+  }
+}
+
+/* STATUS */
+
+.networkStatus {
+  position: absolute;
+  left: 54px;
+  top: 50%;
+  transform: translateY(-50%) translateX(-20px);
+  width: 250px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(160, 255, 244, 0.14);
+  background: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  opacity: 0;
+  transition: 0.55s ease;
+}
+
+.networkStatus.show {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+.networkStatus span {
+  display: block;
+  margin-bottom: 10px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.28em;
+  color: rgba(210, 255, 250, 0.48);
+}
+
+.networkStatus b {
+  display: block;
+  font-size: 36px;
+  font-weight: 300;
+  letter-spacing: -0.05em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.networkStatus div {
+  display: flex;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.networkStatus i {
+  width: 100%;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.networkStatus i.on {
+  background: rgba(150, 255, 240, 0.82);
+  box-shadow: 0 0 14px rgba(120, 255, 230, 0.72);
+}
+
+.finalMessage {
+  position: absolute;
+  left: 50%;
+  bottom: 70px;
+  width: min(620px, calc(100vw - 80px));
+  transform: translateX(-50%) translateY(28px);
+  text-align: center;
+  opacity: 0;
+  filter: blur(10px);
+  transition: 0.75s ease;
+}
+
+.finalMessage.show {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateX(-50%) translateY(0);
+}
+
+.finalMessage span {
+  display: block;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  color: rgba(145, 255, 240, 0.9);
+}
+
+.finalMessage p {
+  margin: 14px 0 0;
+  font-size: clamp(22px, 3vw, 36px);
+  line-height: 1.12;
+  letter-spacing: -0.05em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.footer {
+  position: absolute;
+  left: 54px;
+  right: 54px;
+  bottom: 28px;
+  display: flex;
+  justify-content: space-between;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.3);
+  transition: 0.45s ease;
+}
+
+.footer.mapFooter {
+  color: rgba(180, 255, 246, 0.42);
+}
+
+body.crystal-hover {
+  cursor: pointer;
+}
+
+
+/* JOSEPH-STYLE FOCUS / BLUR INTERACTION */
+body.story-focus-mode canvas {
+  filter: blur(4px) brightness(0.72) saturate(1.18);
+  transition: filter 320ms ease;
+}
+
+body.story-focus-mode .viewport::after {
+  background:
+    radial-gradient(circle at var(--mx) var(--my), color-mix(in srgb, var(--focus-color, #9ffff3), transparent 86%), transparent 16%),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.01), transparent 26%, rgba(0, 0, 0, 0.38));
+}
+
+body.story-focus-mode .storyPanel {
+  border-left-color: color-mix(in srgb, var(--focus-color, #9ffff3), white 10%);
+}
+
+@media (max-width: 900px) {
+  .interface {
+    padding: 26px;
+  }
+
+  .hero {
+    left: 26px;
+    right: 26px;
+    bottom: 84px;
+  }
+
+  .readout {
+    display: none;
+  }
+
+  .navPill {
+    display: none;
+  }
+
+  .networkStatus {
+    display: none;
+  }
+
+  .footer {
+    left: 26px;
+    right: 26px;
+    gap: 16px;
+    flex-direction: column;
+  }
+
+  .mapNode text {
+    display: none;
+  }
+}
+/* STORY-DRIVEN CINEMATIC STRUCTURE */
+html {
+  /* Use proximity instead of mandatory so the final MapLibre view never traps wheel scrolling. */
+  scroll-snap-type: y proximity;
+  scroll-padding-top: 0;
+  scroll-behavior: auto;
+  overscroll-behavior-y: auto;
+}
+
+.site.storySite {
+  min-height: 700vh;
+}
+
+.storyScrollSpace {
+  height: 700vh;
+  pointer-events: none;
+}
+
+.storySnapPoint {
+  height: 100vh;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+
+.storyOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.storyPanel {
+  position: absolute;
+  left: 54px;
+  top: 50%;
+  width: min(480px, calc(100vw - 108px));
+  transform: translateY(-50%);
+  padding: 26px 28px 24px;
+  border-left: 1px solid rgba(150, 255, 240, 0.36);
+  background:
+    linear-gradient(90deg, rgba(2, 6, 7, 0.64), rgba(2, 6, 7, 0.32) 62%, transparent),
+    radial-gradient(circle at 0% 0%, rgba(116, 255, 244, 0.12), transparent 48%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: opacity 260ms ease;
+}
+
+
+.storyPanel {
+  animation: storyPanelIn 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes storyPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-50% + 18px));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%);
+  }
+}
+
+.storyMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  color: rgba(170, 255, 244, 0.72);
+}
+
+.storyMeta span {
+  padding: 7px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(145, 255, 240, 0.22);
+  background: rgba(145, 255, 240, 0.055);
+}
+
+.storyMeta i {
+  font-style: normal;
+  color: rgba(235, 255, 252, 0.42);
+}
+
+.storyPanel h1 {
+  max-width: 440px;
+  margin: 0;
+  font-size: clamp(44px, 4.6vw, 74px);
+  line-height: 0.88;
+  letter-spacing: -0.08em;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.96);
+  text-shadow: 0 0 46px rgba(116, 255, 244, 0.1);
+}
+
+
+.storyPanel .word,
+.storyPanel .char {
+  display: inline-block;
+}
+
+.storyPanel .word {
+  white-space: nowrap;
+}
+
+.storyLead {
+  max-width: 410px;
+  margin: 24px 0 0;
+  font-size: clamp(17px, 1.35vw, 22px);
+  line-height: 1.24;
+  letter-spacing: -0.035em;
+  color: rgba(235, 255, 252, 0.92);
+}
+
+.storyBody {
+  max-width: 390px;
+  margin: 17px 0 0;
+  font-size: 13px;
+  line-height: 1.62;
+  color: rgba(232, 248, 245, 0.66);
+}
+
+.storyDataLine {
+  margin-top: 24px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(180, 255, 246, 0.12);
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: rgba(200, 255, 248, 0.52);
+}
+
+.storyDataLine b {
+  color: rgba(153, 255, 242, 0.88);
+  font-weight: 400;
+  text-align: right;
+}
+
+.storyProgress {
+  position: absolute;
+  right: 44px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  gap: 13px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: rgba(220, 255, 250, 0.28);
+}
+
+.storyProgress span {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(180, 255, 246, 0.12);
+  background: rgba(2, 10, 11, 0.24);
+  backdrop-filter: blur(10px);
+  transition: 260ms ease;
+}
+
+.storyProgress span.on {
+  color: rgba(245, 255, 252, 0.88);
+  border-color: rgba(150, 255, 242, 0.44);
+  background: rgba(120, 255, 240, 0.08);
+  box-shadow: 0 0 24px rgba(120, 255, 240, 0.13);
+}
+
+.storyNextHint {
+  position: absolute;
+  right: 50px;
+  bottom: 58px;
+  min-width: 210px;
+  padding: 14px 17px;
+  border-radius: 18px;
+  border: 1px solid rgba(180, 255, 246, 0.13);
+  background: rgba(2, 8, 9, 0.42);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  font-family: "Space Grotesk", Inter, sans-serif;
+}
+
+.storyNextHint span {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 8px;
+  letter-spacing: 0.26em;
+  color: rgba(180, 255, 246, 0.42);
+}
+
+.storyNextHint b {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: rgba(235, 255, 252, 0.7);
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.storyRoles {
+  position: absolute;
+  left: 54px;
+  right: 54px;
+  bottom: 86px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(22px);
+  transition: 420ms ease;
+}
+
+.storyRoles.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.storyRole {
+  width: 100%;
+  padding: 13px 14px;
+  min-height: 74px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--role-color), transparent 72%);
+  background:
+    radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--role-color), transparent 84%), transparent 44%),
+    rgba(2, 10, 11, 0.52);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  font-family: "Space Grotesk", Inter, sans-serif;
+  text-align: left;
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    transform 260ms ease,
+    border-color 260ms ease,
+    background 260ms ease,
+    box-shadow 260ms ease;
+}
+
+.storyRole:hover,
+.storyRole:focus-visible {
+  transform: translateY(-6px);
+  border-color: color-mix(in srgb, var(--role-color), white 22%);
+  background:
+    radial-gradient(circle at 22% 12%, color-mix(in srgb, var(--role-color), transparent 68%), transparent 50%),
+    rgba(3, 14, 15, 0.72);
+  box-shadow:
+    0 0 28px color-mix(in srgb, var(--role-color), transparent 72%),
+    inset 0 0 26px color-mix(in srgb, var(--role-color), transparent 88%);
+}
+
+.storyRole span {
+  display: block;
+  margin-bottom: 9px;
+  color: color-mix(in srgb, var(--role-color), white 18%);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+}
+
+.storyRole b {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: rgba(248, 255, 253, 0.88);
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.storyRole i {
+  display: block;
+  margin-top: 5px;
+  font-style: normal;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: rgba(220, 255, 250, 0.46);
+}
+
+/* Give each act a slightly different atmosphere without touching the 3D map. */
+.site.act-drought .viewport::after {
+  background:
+    radial-gradient(circle at var(--mx) var(--my), rgba(150, 255, 240, 0.025), transparent 14%),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.006), transparent 28%, rgba(0, 0, 0, 0.36));
+}
+
+.site.act-drought .noise {
+  opacity: 0.028;
+}
+
+.site.act-map .storyPanel {
+  border-left-color: rgba(180, 255, 246, 0.5);
+  background:
+    linear-gradient(90deg, rgba(2, 6, 7, 0.42), rgba(2, 6, 7, 0.18) 58%, transparent),
+    radial-gradient(circle at 0% 0%, rgba(116, 255, 244, 0.16), transparent 48%);
+}
+
+.site.act-map .storyRoles,
+.site.act-map .storyNextHint {
+  opacity: 0;
+  transform: translateY(22px);
+}
+
+@media (max-width: 900px) {
+  .storyPanel {
+    left: 24px;
+    top: auto;
+    bottom: 112px;
+    width: calc(100vw - 48px);
+    padding: 20px;
+  }
+
+  .storyPanel h1 {
+    font-size: 48px;
+  }
+
+  .storyLead {
+    font-size: 17px;
+  }
+
+  .storyBody {
+    font-size: 12px;
+  }
+
+  .storyProgress {
+    right: 20px;
+    top: 88px;
+    grid-template-columns: repeat(7, 1fr);
+    transform: none;
+    gap: 6px;
+  }
+
+  .storyProgress span {
+    width: 26px;
+    height: 26px;
+    font-size: 8px;
+  }
+
+  .storyNextHint {
+    display: none;
+  }
+
+  .storyRoles {
+    left: 20px;
+    right: 20px;
+    bottom: 24px;
+    overflow-x: auto;
+    display: flex;
+  }
+
+  .storyRole {
+    min-width: 132px;
+  }
+}
