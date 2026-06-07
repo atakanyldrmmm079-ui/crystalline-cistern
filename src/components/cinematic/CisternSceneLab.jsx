@@ -1877,7 +1877,7 @@ function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 
   const pointerTargetRef = useRef(new THREE.Vector2(0, 0));
   const pointerUniformRef = useRef(new THREE.Vector2(0, 0));
 
-  const defaultCount = mobile ? 160 : 360;
+  const defaultCount = mobile ? 180 : 340;
 
   const {
     particleEnabled,
@@ -1909,7 +1909,7 @@ function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 
   } = useControls("Scattering Particles", {
     particleEnabled: true,
     particleCount: { value: defaultCount, min: 90, max: 1000, step: 40 },
-    particleOpacity: { value: mobile ? 0.32 : 0.40, min: 0, max: 1, step: 0.01 },
+    particleOpacity: { value: mobile ? 0.34 : 0.40, min: 0, max: 1, step: 0.01 },
     particleSize: { value: 0.058, min: 0.01, max: 0.22, step: 0.001 },
     particleSpeed: { value: 0.28, min: 0, max: 1.4, step: 0.01 },
     particleHeight: { value: 2.95, min: 0.6, max: 7.5, step: 0.05 },
@@ -3620,7 +3620,26 @@ function SceneContent({
   );
 }
 
-export default function CisternSceneLab({
+export default 
+function tuneTextureForClarity(texture, gl, mobile = false) {
+  if (!texture) return texture;
+
+  const maxAnisotropy =
+    gl?.capabilities?.getMaxAnisotropy?.() ||
+    gl?.getContext?.()?.getParameter?.(gl.getContext().MAX_TEXTURE_MAX_ANISOTROPY_EXT) ||
+    4;
+
+  texture.colorSpace = texture.colorSpace || THREE.SRGBColorSpace;
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.anisotropy = Math.min(mobile ? 8 : 12, maxAnisotropy || 8);
+  texture.needsUpdate = true;
+
+  return texture;
+}
+
+function CisternSceneLab({
 scrollProgress = 0,
   visibleProgress = 1,
   portalProgress = 0,
@@ -3642,11 +3661,11 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
     useControls("Scene", {
       autoCamera: true,
       exposure: { value: 1.18, min: 0.1, max: 2.4, step: 0.01 },
-      bloom: { value: mobile ? 0.16 : 0.27, min: 0, max: 2, step: 0.01 },
+      bloom: { value: mobile ? 0.18 : 0.27, min: 0, max: 2, step: 0.01 },
       vignette: { value: 0.48, min: 0, max: 1, step: 0.01 },
       fogNear: { value: 8.4, min: 0, max: 25, step: 0.1 },
       fogFar: { value: 38, min: 5, max: 90, step: 0.5 },
-      dprMax: { value: mobile ? 0.88 : 1.05, min: 0.65, max: 1.3, step: 0.05 },
+      dprMax: { value: mobile ? 1.1 : 1.25, min: 0.75, max: 1.6, step: 0.05 },
     });
 
   const storyControls = useControls("Story", {
@@ -3660,7 +3679,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
     sparkles: { value: true },
     sparkleCount: { value: mobile ? 0 : 4, min: 0, max: 32, step: 1 },
     frameloopAlways: { value: true },
-    lowPowerDpr: { value: mobile ? 0.62 : 0.84, min: 0.55, max: 1.0, step: 0.05 },
+    lowPowerDpr: { value: mobile ? 1.05 : 1.16, min: 0.75, max: 1.35, step: 0.05 },
   });
 
   const [activeModeIndex, setActiveModeIndex] = useState(0);
@@ -3702,7 +3721,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
 
       <Canvas
         shadows={perf.contactShadows}
-        dpr={[0.55, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.62 : 0.84)]}
+        dpr={[0.9, Math.min(dprMax, perf.lowPowerDpr, mobile ? 1.05 : 1.16)]}
         eventSource={rootRef}
         eventPrefix="client"
         onCreated={(state) => {
@@ -3723,9 +3742,9 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
           far: 80,
         }}
         frameloop={labOpacity > 0.025 && mapProgress < 0.55 ? "always" : "demand"}
-        performance={{ min: mobile ? 0.26 : 0.36 }}
+        performance={{ min: mobile ? 0.46 : 0.58 }}
         gl={{
-          antialias: false,
+          antialias: true,
           stencil: false,
           depth: true,
           alpha: false,
@@ -3737,7 +3756,8 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
           <RendererSettings exposure={exposure} />
           <SceneWarmup enabled={visibleProgress > 0.02} />
 
-          <SceneContent
+          <SceneTextureClarityPass mobile={mobile} />
+        <SceneContent
             fogNear={fogNear}
             fogFar={fogFar}
             activeMode={activeMode}
@@ -3855,4 +3875,39 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
 }
 
 useGLTF.preload(`${MODEL_BASE}/hero_crystal.glb`);
-useGLTF.preload(PORTAL_ARCH_PATH);
+useGLTF.preload(PORTAL_ARCH_PATH)
+function SceneTextureClarityPass({ mobile = false }) {
+  const { gl, scene } = useThree();
+  const doneRef = useRef(false);
+
+  useEffect(() => {
+    if (doneRef.current || !scene) return;
+    doneRef.current = true;
+
+    scene.traverse((object) => {
+      if (!object?.isMesh || !object.material) return;
+
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+
+      materials.forEach((mat) => {
+        [
+          "map",
+          "normalMap",
+          "roughnessMap",
+          "metalnessMap",
+          "emissiveMap",
+          "aoMap",
+          "alphaMap",
+        ].forEach((key) => {
+          if (mat[key]) tuneTextureForClarity(mat[key], gl, mobile);
+        });
+
+        mat.needsUpdate = true;
+      });
+    });
+  }, [gl, scene, mobile]);
+
+  return null;
+}
+
+;
