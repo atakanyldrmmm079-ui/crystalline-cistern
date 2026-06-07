@@ -1877,7 +1877,7 @@ const points = useRef();
   const pointerTargetRef = useRef(new THREE.Vector2(0, 0));
   const pointerUniformRef = useRef(new THREE.Vector2(0, 0));
 
-  const defaultCount = mobile ? 150 : 260;
+  const defaultCount = mobile ? 130 : 230;
 
   const {
     particleEnabled,
@@ -1908,7 +1908,7 @@ const points = useRef();
     particleBurstDecay,
   } = useControls("Scattering Particles", {
     particleEnabled: true,
-    particleCount: { value: defaultCount, min: 80, max: 900, step: 20 },
+    particleCount: { value: defaultCount, min: 60, max: 760, step: 20 },
     particleOpacity: { value: mobile ? 0.30 : 0.35, min: 0, max: 1, step: 0.01 },
     particleSize: { value: 0.058, min: 0.01, max: 0.22, step: 0.001 },
     particleSpeed: { value: 0.28, min: 0, max: 1.4, step: 0.01 },
@@ -3721,7 +3721,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
           near: 0.1,
           far: 80,
         }}
-        frameloop={labOpacity > 0.025 && mapProgress < 0.52 ? "always" : "demand"}
+        frameloop={labOpacity > 0.035 && mapProgress < 0.46 ? "always" : "demand"}
         performance={{ min: mobile ? 0.32 : 0.42 }}
         gl={{
           antialias: false,
