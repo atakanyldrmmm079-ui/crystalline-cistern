@@ -1,5 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Space+Grotesk:wght@300;400;500&display=swap");
 
+/* -------------------------------------------------------------------------- */
+/* BASE                                                                       */
+/* -------------------------------------------------------------------------- */
 
 html,
 body,
@@ -5245,10 +5248,10 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
 
 
 /* -------------------------------------------------------------------------- */
-/* V128 MOBILE 1.10 CLARITY + REVERSE PORTAL                                   */
+/* V130 EMERGENCY NO CRASH                                                     */
 /* -------------------------------------------------------------------------- */
-/* Mobile only: SceneLab clarity is raised; map touch interactions are disabled
-   so vertical scroll and reverse portal transition stay stable. */
+/* Removes reverse portal/mapProgressForScene runtime risk.
+   Keeps map files untouched and lowers WebGL context pressure. */
 
 @media (max-width: 900px) {
   .site.isMobileLayout .cisternSceneHost canvas {
@@ -5259,29 +5262,6 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
 
   .site.isMobileLayout .cisternSceneHost {
     filter: contrast(1.018) saturate(1.018) !important;
-  }
-
-  /* On mobile the map is visual/navigation, not a draggable canvas. */
-  .site.isMobileLayout .mapRevealLayer,
-  .site.isMobileLayout .mapRevealLayer.visible,
-  .site.isMobileLayout .mapRevealLayer .maplibregl-map,
-  .site.isMobileLayout .mapRevealLayer .maplibregl-canvas-container,
-  .site.isMobileLayout .mapRevealLayer .maplibregl-canvas,
-  .site.isMobileLayout .mapLibreCrystalStage,
-  .site.isMobileLayout .mapLibreCrystalStage .maplibregl-map,
-  .site.isMobileLayout .mapLibreCrystalStage .maplibregl-canvas-container,
-  .site.isMobileLayout .mapLibreCrystalStage .maplibregl-canvas {
-    pointer-events: none !important;
-    touch-action: pan-y !important;
-  }
-
-  /* Markers can still be visually present; don't let map drag fight page scroll. */
-  .site.isMobileLayout .maplibregl-marker,
-  .site.isMobileLayout .mlLogoMarker,
-  .site.isMobileLayout .mlCisternMarker,
-  .site.isMobileLayout .cisternMarker,
-  .site.isMobileLayout .mapMarker {
-    pointer-events: none !important;
   }
 }
 
