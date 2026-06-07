@@ -5381,20 +5381,3 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
     filter: contrast(1.022) saturate(1.02) !important;
   }
 }
-
-
-/* -------------------------------------------------------------------------- */
-/* V141 LOCK MAP ICONS                                                         */
-/* -------------------------------------------------------------------------- */
-/* Keep global hover rules from moving marker roots after connect/detail mode. */
-.mapRevealLayer.visible .maplibregl-marker {
-  pointer-events: auto !important;
-}
-
-.mapRevealLayer.visible .maplibregl-marker:hover {
-  /* MapLibre owns translate(); don't overwrite root transform here. */
-  filter:
-    drop-shadow(0 0 18px rgba(145,255,243,0.55))
-    drop-shadow(0 0 36px rgba(65,210,255,0.22)) !important;
-  z-index: 20 !important;
-}
