@@ -3629,8 +3629,14 @@ export default function CisternSceneLab({
   showStory = true,
   showLabel = true,
   showLeva = false,
+  showInfoPanel = true,
+  showAnalyzePanel = true,
+  showCrystalInfo = true,
+  showMobilePanels = true,
 } = {}) {
-  const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")));
+  const allowCrystalInfoPanels = showStory && showInfoPanel && showAnalyzePanel && showCrystalInfo && showMobilePanels;
+
+const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")));
 
   const { autoCamera, exposure, bloom, vignette, fogNear, fogFar, dprMax } =
     useControls("Scene", {
@@ -3806,7 +3812,7 @@ export default function CisternSceneLab({
         </div>
       )}
 
-      {showLabel && (
+      {allowCrystalInfoPanels && showLabel && (
       <div
         className="cisternLabLabel"
         style={{
