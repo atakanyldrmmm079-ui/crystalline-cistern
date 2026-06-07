@@ -3178,3 +3178,193 @@ button:hover {
     max-width: calc(100vw - 32px) !important;
   }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V83 FINAL TEXT SPACING + SMOOTH SCROLL + PERFORMANCE                        */
+/* -------------------------------------------------------------------------- */
+
+/* Keep clipping fixed by enlarging the panel safe area, not by huge word padding. */
+.gsapSafeStory {
+  width: min(650px, calc(100vw - 92px)) !important;
+}
+
+.gsapSafeStoryCard {
+  width: min(625px, 100%) !important;
+  padding: 30px 34px 32px 28px !important;
+  overflow: visible !important;
+  clip-path: none !important;
+  contain: none !important;
+  border-radius: 0 24px 24px 0 !important;
+  backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
+}
+
+.gsapSafeStory.right .gsapSafeStoryCard {
+  padding: 30px 28px 32px 34px !important;
+  border-radius: 24px 0 0 24px !important;
+}
+
+/* Restore elegant old-like typography spacing. */
+.gsapSafeStory .cinematicStoryTitle {
+  font-size: clamp(32px, 3.25vw, 41px) !important;
+  line-height: 1.04 !important;
+  letter-spacing: -0.060em !important;
+  padding: 0.06em 0.02em 0.12em !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  text-wrap: balance;
+}
+
+.gsapSafeStory .storyWord {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  line-height: 1.04 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  vertical-align: baseline !important;
+}
+
+.gsapSafeStory .storyChar {
+  display: inline-block !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  will-change: transform, opacity, filter !important;
+}
+
+.gsapSafeStory .storySpace {
+  white-space: pre !important;
+}
+
+/* Extra transparent hit/safe bleed so glow does not feel clipped. */
+.gsapSafeStoryCard::after {
+  content: "";
+  position: absolute;
+  inset: -18px -22px -22px -10px;
+  pointer-events: none;
+}
+
+.gsapSafeStory .storyChar.isMuted {
+  color: rgba(184, 206, 201, 0.46) !important;
+  opacity: 0.86 !important;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.62) !important;
+}
+
+.gsapSafeStory .storyChar.isStrong {
+  color: rgba(246, 255, 253, 0.98) !important;
+  opacity: 1 !important;
+  text-shadow:
+    0 0 9px rgba(150, 255, 242, 0.32),
+    0 0 22px rgba(150, 255, 242, 0.16),
+    0 3px 15px rgba(0, 0, 0, 0.72) !important;
+}
+
+/* Reduce expensive full-screen effects a little more, without changing the main scene look. */
+.rainGlass {
+  opacity: min(var(--rainOpacity, 0), 0.055) !important;
+}
+
+.rainStreaks span:nth-child(n+8),
+.slidingDroplets span:nth-child(n+2) {
+  display: none !important;
+}
+
+.noise {
+  opacity: 0.012 !important;
+}
+
+/* Keep map mission visible. */
+.site.act-map .mapMissionOverlay,
+.mapMissionOverlay.alwaysVisible,
+.mapMissionOverlay.persistent {
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Mobile final spacing */
+@media (max-width: 768px) {
+  .gsapSafeStory,
+  .gsapSafeStory.right {
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+  }
+
+  .gsapSafeStoryCard,
+  .gsapSafeStory.right .gsapSafeStoryCard {
+    width: 100% !important;
+    padding: 18px 18px 22px !important;
+    backdrop-filter: blur(3px) !important;
+    -webkit-backdrop-filter: blur(3px) !important;
+  }
+
+  .gsapSafeStory .cinematicStoryTitle {
+    font-size: clamp(24px, 6.8vw, 32px) !important;
+    line-height: 1.05 !important;
+    letter-spacing: -0.052em !important;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V84 MAP ICON SIZE FIX: 2X CISTERN ICONS                                     */
+/* -------------------------------------------------------------------------- */
+/* Doubles the final MapLibre cistern icons without touching map logic. */
+body .site .viewport .mapLibreCrystalStage .mlLogoMarker,
+body .site .viewport .mapRevealLayer .mlLogoMarker,
+body .mapLibreCrystalStage .mlLogoMarker {
+  --logo-size: 124px !important;
+  --logo-hover-size: 140px !important;
+  --logo-active-size: 132px !important;
+  --ring-size: 196px !important;
+  --ring-glow: 22px !important;
+  min-width: 182px !important;
+  min-height: 182px !important;
+}
+
+body .site .viewport .mapLibreCrystalStage .mlLogoMarkerInner,
+body .site .viewport .mapRevealLayer .mlLogoMarkerInner,
+body .mapLibreCrystalStage .mlLogoMarkerInner {
+  width: var(--logo-size) !important;
+  height: var(--logo-size) !important;
+}
+
+body .site .viewport .mapLibreCrystalStage .mlLogoMarkerIcon,
+body .site .viewport .mapRevealLayer .mlLogoMarkerIcon,
+body .mapLibreCrystalStage .mlLogoMarkerIcon {
+  width: var(--logo-size) !important;
+  height: var(--logo-size) !important;
+}
+
+body .site .viewport .mapLibreCrystalStage .mlLogoMarker:hover .mlLogoMarkerIcon,
+body .site .viewport .mapLibreCrystalStage .mlLogoMarker.is-hovered .mlLogoMarkerIcon,
+body .site .viewport .mapRevealLayer .mlLogoMarker:hover .mlLogoMarkerIcon,
+body .site .viewport .mapRevealLayer .mlLogoMarker.is-hovered .mlLogoMarkerIcon,
+body .mapLibreCrystalStage .mlLogoMarker:hover .mlLogoMarkerIcon,
+body .mapLibreCrystalStage .mlLogoMarker.is-hovered .mlLogoMarkerIcon {
+  width: var(--logo-hover-size) !important;
+  height: var(--logo-hover-size) !important;
+}
+
+body .site .viewport .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon,
+body .site .viewport .mapRevealLayer .mlLogoMarker.is-active .mlLogoMarkerIcon,
+body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
+  width: var(--logo-active-size) !important;
+  height: var(--logo-active-size) !important;
+}
+
+/* Mobile should still be larger, but not so huge that nodes overlap badly. */
+@media (max-width: 768px) {
+  body .site .viewport .mapLibreCrystalStage .mlLogoMarker,
+  body .site .viewport .mapRevealLayer .mlLogoMarker,
+  body .mapLibreCrystalStage .mlLogoMarker {
+    --logo-size: 94px !important;
+    --logo-hover-size: 106px !important;
+    --logo-active-size: 100px !important;
+    --ring-size: 148px !important;
+    min-width: 132px !important;
+    min-height: 132px !important;
+  }
+}
