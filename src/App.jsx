@@ -220,22 +220,41 @@ function eachMaterial(material, callback) {
 
 function useScrollProgress() {
   const [scroll, setScroll] = useState(0);
+  const targetRef = useRef(0);
+  const currentRef = useRef(0);
+  const rafRef = useRef(0);
 
   useEffect(() => {
     window.scrollTo(0, 0);
 
-    function update() {
+    function readTarget() {
       const max = document.documentElement.scrollHeight - window.innerHeight;
-      setScroll(max > 0 ? clamp01(window.scrollY / max) : 0);
+      targetRef.current = max > 0 ? clamp01(window.scrollY / max) : 0;
     }
 
-    update();
-    window.addEventListener("scroll", update);
-    window.addEventListener("resize", update);
+    function tick() {
+      currentRef.current = THREE.MathUtils.lerp(currentRef.current, targetRef.current, 0.18);
+
+      if (Math.abs(currentRef.current - targetRef.current) < 0.00045) {
+        currentRef.current = targetRef.current;
+      }
+
+      setScroll(currentRef.current);
+      rafRef.current = requestAnimationFrame(tick);
+    }
+
+    readTarget();
+    currentRef.current = targetRef.current;
+    setScroll(currentRef.current);
+
+    window.addEventListener("scroll", readTarget, { passive: true });
+    window.addEventListener("resize", readTarget);
+    rafRef.current = requestAnimationFrame(tick);
 
     return () => {
-      window.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
+      cancelAnimationFrame(rafRef.current);
+      window.removeEventListener("scroll", readTarget);
+      window.removeEventListener("resize", readTarget);
     };
   }, []);
 
@@ -3276,8 +3295,8 @@ export default function App() {
       chamberStart: { value: 0.68, min: 0.1, max: 1, step: 0.005 },
       chamberEnd: { value: 0.84, min: 0.1, max: 1, step: 0.005 },
       // Map timing is now earlier and smoother so the portal section does not create dead scroll.
-      mapStart: { value: 0.755, min: 0.1, max: 1, step: 0.005 },
-      mapEnd: { value: 0.835, min: 0.2, max: 1, step: 0.005 },
+      mapStart: { value: 0.775, min: 0.1, max: 1, step: 0.005 },
+      mapEnd: { value: 0.855, min: 0.2, max: 1, step: 0.005 },
     }),
 
     "01_CAMERA": folder({
@@ -3361,7 +3380,7 @@ export default function App() {
       storyOpacity: { value: 1, min: 0, max: 1, step: 0.01 },
       storyTitleSize: { value: 36, min: 30, max: 52, step: 1 },
       storyKickerSize: { value: 11, min: 7, max: 18, step: 1 },
-      storyFadeSize: { value: 0.052, min: 0.008, max: 0.12, step: 0.002 },
+      storyFadeSize: { value: 0.058, min: 0.008, max: 0.12, step: 0.002 },
       storyDrift: { value: 20, min: 0, max: 80, step: 1 },
       storyGlow: { value: 0.3, min: 0, max: 1.2, step: 0.01 },
       storyBlur: { value: 0.0, min: 0, max: 8, step: 0.1 },
@@ -3374,32 +3393,32 @@ export default function App() {
       storyDescentStart: { value: 0.165, min: 0.02, max: 0.42, step: 0.005 },
       storyDescentEnd: { value: 0.205, min: 0.06, max: 0.55, step: 0.005 },
       storyReactionStart: { value: 0.215, min: 0.1, max: 0.6, step: 0.005 },
-      storyReactionEnd: { value: 0.315, min: 0.16, max: 0.72, step: 0.005 },
-      storyCoreStart: { value: 0.335, min: 0.22, max: 0.76, step: 0.005 },
-      storyCoreEnd: { value: 0.425, min: 0.28, max: 0.84, step: 0.005 },
-      storyPortalStart: { value: 0.485, min: 0.36, max: 0.9, step: 0.005 },
-      storyPortalEnd: { value: 0.59, min: 0.44, max: 0.95, step: 0.005 },
-      storyMapStart: { value: 0.72, min: 0.5, max: 0.99, step: 0.005 },
-      storyMapEnd: { value: 0.805, min: 0.58, max: 1.0, step: 0.005 },
+      storyReactionEnd: { value: 0.335, min: 0.16, max: 0.72, step: 0.005 },
+      storyCoreStart: { value: 0.35, min: 0.22, max: 0.76, step: 0.005 },
+      storyCoreEnd: { value: 0.47, min: 0.28, max: 0.84, step: 0.005 },
+      storyPortalStart: { value: 0.5, min: 0.36, max: 0.9, step: 0.005 },
+      storyPortalEnd: { value: 0.63, min: 0.44, max: 0.95, step: 0.005 },
+      storyMapStart: { value: 0.735, min: 0.5, max: 0.99, step: 0.005 },
+      storyMapEnd: { value: 0.83, min: 0.58, max: 1.0, step: 0.005 },
     }),
 
     "APP_FLOW": folder({
       // Total page height. Lower value = less empty wheel travel and faster cinematic movement.
-      scrollHeightVh: { value: 600, min: 520, max: 1200, step: 10 },
+      scrollHeightVh: { value: 640, min: 520, max: 1200, step: 10 },
       cisternEnterStart: { value: 0.115, min: 0.02, max: 0.5, step: 0.005 },
       cisternEnterEnd: { value: 0.205, min: 0.08, max: 0.65, step: 0.005 },
       // Camera motion starts as soon as the CisternSceneLab is visible.
       // Tighten this range if you still feel dead scroll.
       labMotionStart: { value: 0.175, min: 0.06, max: 0.75, step: 0.005 },
-      labMotionEnd: { value: 0.56, min: 0.25, max: 0.92, step: 0.005 },
-      portalStart: { value: 0.525, min: 0.3, max: 0.95, step: 0.005 },
-      portalEnd: { value: 0.705, min: 0.4, max: 0.99, step: 0.005 },
+      labMotionEnd: { value: 0.585, min: 0.25, max: 0.92, step: 0.005 },
+      portalStart: { value: 0.535, min: 0.3, max: 0.95, step: 0.005 },
+      portalEnd: { value: 0.72, min: 0.4, max: 0.99, step: 0.005 },
       // Dedicated crossfade controls. These remove the half-map / half-cistern stuck frame.
-      mapVisualStart: { value: 0.735, min: 0.5, max: 0.98, step: 0.005 },
-      mapVisualEnd: { value: 0.815, min: 0.55, max: 1.0, step: 0.005 },
+      mapVisualStart: { value: 0.755, min: 0.5, max: 0.98, step: 0.005 },
+      mapVisualEnd: { value: 0.835, min: 0.55, max: 1.0, step: 0.005 },
       cisternFadeLead: { value: 0.05, min: 0, max: 0.08, step: 0.002 },
       mapMountLead: { value: 0.0, min: 0, max: 0.08, step: 0.002 },
-      progressSmoothing: { value: 0.38, min: 0, max: 1, step: 0.01 },
+      progressSmoothing: { value: 0.48, min: 0, max: 1, step: 0.01 },
     }),
 
     "06_LIGHT_FOG_BLOOM": folder({
@@ -3493,7 +3512,7 @@ export default function App() {
   // No fullscreen cyan wash: the portal must stay as a real object, not a blue screen overlay.
   const portalWashProgress = 0;
   const portalWashOpacity = 0;
-  const shouldMountMap = scroll >= mapVisualStart + 0.012;
+  const shouldMountMap = scroll >= mapVisualStart + 0.018;
   const showIntroInterface = introOpacity > 0.04 && scroll < design.introFadeEnd + 0.03 && cisternOpacity < 0.18 && mapProgress < 0.02;
   const shouldRenderStory = preloaderDone && scroll >= design.storyReactionStart - 0.035 && introOpacity < 0.14;
 
