@@ -1877,7 +1877,7 @@ function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 
   const pointerTargetRef = useRef(new THREE.Vector2(0, 0));
   const pointerUniformRef = useRef(new THREE.Vector2(0, 0));
 
-  const defaultCount = mobile ? 200 : 360;
+  const defaultCount = mobile ? 160 : 360;
 
   const {
     particleEnabled,
@@ -3636,7 +3636,7 @@ export default function CisternSceneLab({
     useControls("Scene", {
       autoCamera: true,
       exposure: { value: 1.18, min: 0.1, max: 2.4, step: 0.01 },
-      bloom: { value: mobile ? 0.22 : 0.27, min: 0, max: 2, step: 0.01 },
+      bloom: { value: mobile ? 0.16 : 0.27, min: 0, max: 2, step: 0.01 },
       vignette: { value: 0.48, min: 0, max: 1, step: 0.01 },
       fogNear: { value: 8.4, min: 0, max: 25, step: 0.1 },
       fogFar: { value: 38, min: 5, max: 90, step: 0.5 },
@@ -3652,9 +3652,9 @@ export default function CisternSceneLab({
     portalDistortion: { value: false },
     contactShadows: { value: false },
     sparkles: { value: true },
-    sparkleCount: { value: mobile ? 1 : 4, min: 0, max: 32, step: 1 },
+    sparkleCount: { value: mobile ? 0 : 4, min: 0, max: 32, step: 1 },
     frameloopAlways: { value: true },
-    lowPowerDpr: { value: mobile ? 0.72 : 0.84, min: 0.60, max: 1.0, step: 0.05 },
+    lowPowerDpr: { value: mobile ? 0.62 : 0.84, min: 0.55, max: 1.0, step: 0.05 },
   });
 
   const [activeModeIndex, setActiveModeIndex] = useState(0);
@@ -3696,7 +3696,7 @@ export default function CisternSceneLab({
 
       <Canvas
         shadows={perf.contactShadows}
-        dpr={[0.62, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.72 : 0.84)]}
+        dpr={[0.55, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.62 : 0.84)]}
         eventSource={rootRef}
         eventPrefix="client"
         onCreated={(state) => {
