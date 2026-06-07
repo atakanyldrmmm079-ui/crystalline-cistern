@@ -255,7 +255,15 @@ const CRITICAL_SCENELAB_ASSETS = [
   "/icons/cisterns/fildami.png",
   "/icons/cisterns/gulhane.png",
   "/icons/cisterns/serefiye.png",
-];
+
+  "/textures/cables/cable_diffuse.jpg",
+  "/textures/cables/cable_normal.jpg",
+  "/textures/columns/column_diffuse.jpg",
+  "/textures/columns/column_normal.jpg",
+  "/textures/pedestal/pedestal_diffuse.jpg",
+  "/textures/pedestal/pedestal_normal.jpg",
+  "/textures/rocks/rock_diffuse.jpg",
+  "/textures/rocks/rock_normal.jpg",];
 
 function useCriticalSceneAssets() {
   const [ready, setReady] = useState(false);
@@ -294,7 +302,7 @@ function useCriticalSceneAssets() {
           .catch(() => null)
       );
 
-    const timeout = new Promise((resolve) => window.setTimeout(resolve, 4200));
+    const timeout = new Promise((resolve) => window.setTimeout(resolve, 5600));
 
     Promise.race([
       Promise.allSettled([...imagePromises, ...fetchPromises]),
@@ -305,13 +313,8 @@ function useCriticalSceneAssets() {
 
     return () => {
       cancelled = true;
-      preloadLinks.forEach((link) => {
-        try {
-          link.remove();
-        } catch {
-          // ignore
-        }
-      });
+      // Keep preload links in the document head so browser cache hints remain available.
+      // They are tiny DOM nodes and safer than removing hints before SceneLab mounts.
     };
   }, []);
 
