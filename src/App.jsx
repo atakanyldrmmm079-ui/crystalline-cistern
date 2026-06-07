@@ -3620,8 +3620,9 @@ export default function App() {
   const portalWashOpacity = 0;
   const shouldMountCistern =
     preloaderDone &&
-    criticalSceneAssetsReady &&
-    scroll >= design.cisternEnterStart - 0.035 &&
+    // Mount SceneLab early while invisible so procedural column textures are ready
+    // before the user reaches the SceneLab section.
+    scroll >= design.cisternEnterStart - 0.22 &&
     mapProgress < 0.58;
 
   const shouldMountMap =
@@ -3696,7 +3697,7 @@ return (
           >
             <CisternSceneLab
               scrollProgress={labScrollProgress}
-              visibleProgress={cisternOpacity}
+              visibleProgress={Math.max(cisternOpacity, 0.04)}
               portalProgress={portalProgress}
               mapProgress={mapProgress}
               designMode={false}
