@@ -281,6 +281,18 @@ function useCriticalSceneAssets() {
       return link;
     });
 
+
+    const prefetchLinks = CRITICAL_SCENELAB_ASSETS
+      .filter((href) => /\.(png|jpg|jpeg|webp|glb)$/i.test(href))
+      .map((href) => {
+        const link = document.createElement("link");
+        link.rel = "prefetch";
+        link.href = href;
+        if (href.endsWith(".glb")) link.as = "fetch";
+        document.head.appendChild(link);
+        return link;
+      });
+
     const imagePromises = CRITICAL_SCENELAB_ASSETS
       .filter((src) => /\.(png|jpg|jpeg|webp)$/i.test(src))
       .map(
@@ -288,7 +300,14 @@ function useCriticalSceneAssets() {
           new Promise((resolve) => {
             const img = new Image();
             img.decoding = "async";
-            img.onload = resolve;
+            img.onload = async () => {
+              try {
+                await img.decode?.();
+              } catch {
+                // decode may fail on some browsers even after load
+              }
+              resolve();
+            };
             img.onerror = resolve;
             img.src = src;
           })
@@ -302,7 +321,7 @@ function useCriticalSceneAssets() {
           .catch(() => null)
       );
 
-    const timeout = new Promise((resolve) => window.setTimeout(resolve, 5600));
+    const timeout = new Promise((resolve) => window.setTimeout(resolve, 6200));
 
     Promise.race([
       Promise.allSettled([...imagePromises, ...fetchPromises]),
