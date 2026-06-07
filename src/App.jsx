@@ -242,6 +242,32 @@ function useIsMobileViewport() {
   return isMobile;
 }
 
+
+function useIsCompactViewport() {
+  const [isCompact, setIsCompact] = useState(() =>
+    typeof window !== "undefined"
+      ? window.innerWidth <= 1366 || window.innerHeight <= 760
+      : false
+  );
+
+  useEffect(() => {
+    const update = () => {
+      setIsCompact(window.innerWidth <= 1366 || window.innerHeight <= 760);
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+    };
+  }, []);
+
+  return isCompact;
+}
+
 function useScrollProgress() {
   const [scroll, setScroll] = useState(0);
   const targetRef = useRef(0);
@@ -3342,6 +3368,7 @@ function IntroOnlyScene({ scroll, design, hovered, selected }) {
 export default function App() {
   const scroll = useScrollProgress();
   const isMobileViewport = useIsMobileViewport();
+  const isCompactViewport = useIsCompactViewport();
   const siteRef = useRef(null);
 
   const designMode = false;
@@ -3504,8 +3531,8 @@ export default function App() {
       bloomIntensity: { value: 0.53, min: 0, max: 3, step: 0.01 },
       bloomThreshold: { value: 0.44, min: 0, max: 1, step: 0.01 },
       bloomSmoothing: { value: 0.76, min: 0, max: 1, step: 0.01 },
-      vignetteOffset: { value: 0.18, min: 0, max: 1, step: 0.01 },
-      vignetteDarkness: { value: 0.62, min: 0, max: 2, step: 0.01 },
+      vignetteOffset: { value: 0.26, min: 0, max: 1, step: 0.01 },
+      vignetteDarkness: { value: 0.46, min: 0, max: 2, step: 0.01 },
     }),
   });
 
@@ -3608,10 +3635,21 @@ export default function App() {
   const cisternInteractive = mapProgress < 0.72;
   const mapInteractive = mapProgress > 0.94;
 
+  
+  const compactCrystalPanelActive =
+    isCompactViewport &&
+    !isMobileViewport &&
+    labScrollProgress > 0.035 &&
+    labScrollProgress < 0.72 &&
+    mapProgress < 0.24;
+
+  const shouldShowExternalStory =
+    shouldRenderStory && !compactCrystalPanelActive;
+
   return (
     <main
       ref={siteRef}
-      className={`site storySite act-${activeStory.slug} ${fullNetwork ? "networkComplete" : ""} ${isMobileViewport ? "isMobileLayout" : ""}`}
+      className={`site storySite act-${activeStory.slug} ${fullNetwork ? "networkComplete" : ""} ${isMobileViewport ? "isMobileLayout" : ""} ${isCompactViewport ? "isCompactLayout" : ""}`}
       onMouseMove={showIntroInterface ? handleMouseMove : undefined}
       style={{ minHeight: `${design.scrollHeightVh}vh`, pointerEvents: "auto" }}
     >
@@ -3728,7 +3766,7 @@ export default function App() {
 
         {showIntroInterface && <IntroMinimalInterface introOpacity={introOpacity} />}
 
-        {shouldRenderStory && <CinematicStoryLayer scroll={scroll} design={design} />}
+        {shouldShowExternalStory && <CinematicStoryLayer scroll={scroll} design={design} />}
         {preloaderDone && <MapMissionOverlay scroll={scroll} design={design} activatedNodes={activatedNodes} />}
       </section>
 
