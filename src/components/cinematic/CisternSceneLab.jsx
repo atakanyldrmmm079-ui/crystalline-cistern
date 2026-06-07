@@ -1476,6 +1476,7 @@ function Column({ x, z, materials }) {
 function ColumnHall() {
   const columnTextures = useOptionalTexturePair(TEXTURE_PATHS.columns);
 
+
   const bodyMaterial = useTexturedMaterial(columnTextures, {
     repeatX: 2.2,
     repeatY: 5.8,
@@ -3619,6 +3620,7 @@ function SceneContent({
     </>
   );
 }
+
 
 export default function CisternSceneLab({
   scrollProgress = 0,
