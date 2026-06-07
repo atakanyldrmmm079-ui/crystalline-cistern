@@ -3646,7 +3646,7 @@ scrollProgress = 0,
       vignette: { value: 0.48, min: 0, max: 1, step: 0.01 },
       fogNear: { value: 8.4, min: 0, max: 25, step: 0.1 },
       fogFar: { value: 38, min: 5, max: 90, step: 0.5 },
-      dprMax: { value: mobile ? 0.88 : 1.05, min: 0.65, max: 1.3, step: 0.05 },
+      dprMax: { value: mobile ? 0.98 : 1.05, min: 0.65, max: 1.3, step: 0.05 },
     });
 
   const storyControls = useControls("Story", {
@@ -3660,7 +3660,7 @@ scrollProgress = 0,
     sparkles: { value: true },
     sparkleCount: { value: mobile ? 2 : 6, min: 0, max: 40, step: 1 },
     frameloopAlways: { value: true },
-    lowPowerDpr: { value: mobile ? 0.74 : 0.88, min: 0.65, max: 1.05, step: 0.05 },
+    lowPowerDpr: { value: mobile ? 0.88 : 0.88, min: 0.65, max: 1.05, step: 0.05 },
   });
 
   const [activeModeIndex, setActiveModeIndex] = useState(0);
@@ -3702,7 +3702,7 @@ scrollProgress = 0,
 
       <Canvas
         shadows={perf.contactShadows}
-        dpr={[0.65, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.74 : 0.88)]}
+        dpr={[mobile ? 0.78 : 0.65, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.88 : 0.88)]}
         eventSource={rootRef}
         eventPrefix="client"
         onCreated={(state) => {
