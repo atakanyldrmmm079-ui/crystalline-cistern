@@ -163,62 +163,104 @@ const CRYSTAL_MODES = [
 /*                            SAFE TEXTURE LOADING                            */
 /* -------------------------------------------------------------------------- */
 
+
+const texturePairCache = new Map();
+const texturePairInflight = new Map();
+
+function getTexturePairKey(paths) {
+  return `${paths?.diffuse || ""}|${paths?.normal || ""}`;
+}
+
+function prepareTexture(texture, isColor) {
+  if (!texture) return null;
+
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.anisotropy = 8;
+  texture.colorSpace = isColor ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  texture.needsUpdate = true;
+
+  return texture;
+}
+
+function loadTextureSafe(loader, url, isColor = false) {
+  return new Promise((resolve) => {
+    if (!url) {
+      resolve(null);
+      return;
+    }
+
+    loader.load(
+      url,
+      (texture) => resolve(prepareTexture(texture, isColor)),
+      undefined,
+      () => {
+        console.warn(`[Texture] Could not load: ${url}`);
+        resolve(null);
+      }
+    );
+  });
+}
+
+function loadTexturePair(paths) {
+  const key = getTexturePairKey(paths);
+
+  if (texturePairCache.has(key)) {
+    return Promise.resolve(texturePairCache.get(key));
+  }
+
+  if (texturePairInflight.has(key)) {
+    return texturePairInflight.get(key);
+  }
+
+  if (typeof THREE.Cache !== "undefined") {
+    THREE.Cache.enabled = true;
+  }
+
+  const loader = new THREE.TextureLoader();
+  const promise = Promise.all([
+    loadTextureSafe(loader, paths.diffuse, true),
+    loadTextureSafe(loader, paths.normal, false),
+  ]).then(([map, normalMap]) => {
+    const pair = { map, normalMap };
+    texturePairCache.set(key, pair);
+    texturePairInflight.delete(key);
+    return pair;
+  });
+
+  texturePairInflight.set(key, promise);
+  return promise;
+}
+
 function useOptionalTexturePair(paths) {
-  const [textures, setTextures] = useState({
-    map: null,
-    normalMap: null,
+  const key = getTexturePairKey(paths);
+
+  const [textures, setTextures] = useState(() => {
+    return texturePairCache.get(key) || {
+      map: null,
+      normalMap: null,
+    };
   });
 
   useEffect(() => {
     let cancelled = false;
-    const loader = new THREE.TextureLoader();
 
-    const setupTexture = (texture, isColor) => {
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.wrapT = THREE.RepeatWrapping;
-      texture.anisotropy = 8;
-      texture.colorSpace = isColor
-        ? THREE.SRGBColorSpace
-        : THREE.NoColorSpace;
-      texture.needsUpdate = true;
-      return texture;
-    };
+    const cached = texturePairCache.get(key);
+    if (cached) {
+      setTextures(cached);
+      return () => {
+        cancelled = true;
+      };
+    }
 
-    const loadTexture = (url, isColor = false) => {
-      return new Promise((resolve) => {
-        if (!url) {
-          resolve(null);
-          return;
-        }
-
-        loader.load(
-          url,
-          (texture) => resolve(setupTexture(texture, isColor)),
-          undefined,
-          () => {
-            console.warn(`[Texture] Could not load: ${url}`);
-            resolve(null);
-          }
-        );
-      });
-    };
-
-    Promise.all([
-      loadTexture(paths.diffuse, true),
-      loadTexture(paths.normal, false),
-    ]).then(([map, normalMap]) => {
-      if (cancelled) return;
-
-      setTextures({
-        map,
-        normalMap,
-      });
+    loadTexturePair(paths).then((pair) => {
+      if (!cancelled) setTextures(pair);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [paths.diffuse, paths.normal]);
+  }, [key, paths.diffuse, paths.normal]);
 
   return textures;
 }
@@ -3638,6 +3680,14 @@ scrollProgress = 0,
 } = {}) {
   const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")));
 
+
+  useEffect(() => {
+    loadTexturePair(TEXTURE_PATHS.columns);
+    loadTexturePair(TEXTURE_PATHS.pedestal);
+    loadTexturePair(TEXTURE_PATHS.rocks);
+    loadTexturePair(TEXTURE_PATHS.cables);
+  }, []);
+
   const { autoCamera, exposure, bloom, vignette, fogNear, fogFar, dprMax } =
     useControls("Scene", {
       autoCamera: true,
@@ -3646,7 +3696,7 @@ scrollProgress = 0,
       vignette: { value: 0.48, min: 0, max: 1, step: 0.01 },
       fogNear: { value: 8.4, min: 0, max: 25, step: 0.1 },
       fogFar: { value: 38, min: 5, max: 90, step: 0.5 },
-      dprMax: { value: mobile ? 1.10 : 1.05, min: 0.65, max: 1.3, step: 0.05 },
+      dprMax: { value: mobile ? 1.20 : 1.05, min: 0.65, max: 1.35, step: 0.05 },
     });
 
   const storyControls = useControls("Story", {
@@ -3660,7 +3710,7 @@ scrollProgress = 0,
     sparkles: { value: true },
     sparkleCount: { value: mobile ? 2 : 6, min: 0, max: 40, step: 1 },
     frameloopAlways: { value: true },
-    lowPowerDpr: { value: mobile ? 1.05 : 0.88, min: 0.65, max: 1.10, step: 0.05 },
+    lowPowerDpr: { value: mobile ? 1.12 : 0.88, min: 0.65, max: 1.20, step: 0.05 },
   });
 
   const [activeModeIndex, setActiveModeIndex] = useState(0);
@@ -3702,7 +3752,7 @@ scrollProgress = 0,
 
       <Canvas
         shadows={perf.contactShadows}
-        dpr={[mobile ? 0.92 : 0.65, Math.min(dprMax, perf.lowPowerDpr, mobile ? 1.05 : 0.88)]}
+        dpr={[mobile ? 1.0 : 0.65, Math.min(dprMax, perf.lowPowerDpr, mobile ? 1.12 : 0.88)]}
         eventSource={rootRef}
         eventPrefix="client"
         onCreated={(state) => {
