@@ -3621,7 +3621,7 @@ function SceneContent({
 }
 
 export default function CisternSceneLab({
-  scrollProgress = 0,
+scrollProgress = 0,
   visibleProgress = 1,
   portalProgress = 0,
   mapProgress = 0,
@@ -3677,7 +3677,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
 
   // Panel now opens from the crystal click itself.
   // This avoids depending on App.jsx showStory flags while keeping Leva control.
-  const storyVisible = storyControls.showStoryControl && storyPanelOpen && mapProgress < 0.52;
+  const storyVisible = allowCrystalInfoPanels && storyControls.showStoryControl && storyPanelOpen && mapProgress < 0.52;
   const labOpacity = THREE.MathUtils.clamp(visibleProgress, 0, 1);
   const rootRef = useRef(null);
 
@@ -3692,9 +3692,9 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
         overflow: "hidden",
         background: "#020b0a",
         opacity: labOpacity,
-        pointerEvents: mapProgress < 0.52 ? "auto" : "none",
+        pointerEvents: allowCrystalInfoPanels && mapProgress < 0.52 ? "auto" : "none",
         isolation: "isolate",
-        touchAction: "none",
+        touchAction: "pan-y",
         zIndex: 1,
       }}
     >
@@ -3714,7 +3714,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
           width: "100%",
           height: "100%",
           pointerEvents: "auto",
-          touchAction: "none",
+          touchAction: "pan-y",
         }}
         camera={{
           position: [-0.3, 0.88, 4.6],
@@ -3778,7 +3778,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
 
       {storyVisible && <StoryOverlay activeMode={activeMode} modePulseKey={modePulseKey} onAnalyze={handleCrystalModeChange} />}
 
-      {scrollProgress > 0.035 && scrollProgress < 0.70 && mapProgress < 0.22 && (
+      {allowCrystalInfoPanels && scrollProgress > 0.035 && scrollProgress < 0.70 && mapProgress < 0.22 && (
         <div
           className="crystalAnalyzePrompt"
           style={{
