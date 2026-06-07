@@ -5139,3 +5139,62 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
 .cisternSceneHost {
   display: block !important;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V121 RESTORE MAP HOVER                                                      */
+/* -------------------------------------------------------------------------- */
+/* Map hover broke because map pointer-events were enabled too late.
+   This restores hover/click on MapLibre markers once the map is visible. */
+
+.mapRevealLayer.visible,
+.mapRevealLayer[style*="pointer-events: auto"] {
+  pointer-events: auto !important;
+}
+
+.mapRevealLayer.visible *,
+.mapRevealLayer.visible canvas,
+.mapRevealLayer.visible .maplibregl-map,
+.mapRevealLayer.visible .maplibregl-canvas-container,
+.mapRevealLayer.visible .maplibregl-marker,
+.mapRevealLayer.visible .mlLogoMarker,
+.mapRevealLayer.visible .mlLogoMarkerIcon,
+.mapRevealLayer.visible .mlCisternMarker,
+.mapRevealLayer.visible .cisternMarker,
+.mapRevealLayer.visible .mapMarker {
+  pointer-events: auto !important;
+}
+
+/* Make sure decorative marker children don't block parent hover logic incorrectly. */
+.mapRevealLayer .mlLogoMarker,
+.mapRevealLayer .maplibregl-marker {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+.mapRevealLayer .mlLogoMarkerIcon,
+.mapRevealLayer .mlLogoMarker *,
+.mapRevealLayer .maplibregl-marker * {
+  pointer-events: auto !important;
+}
+
+/* Restore visual hover scale/glow for logo markers even if older CSS got overridden. */
+.mapRevealLayer .mlLogoMarker:hover,
+.mapRevealLayer .maplibregl-marker:hover .mlLogoMarker,
+.mapLibreCrystalStage .mlLogoMarker:hover {
+  transform: translate(-50%, -50%) scale(1.08) !important;
+  filter:
+    drop-shadow(0 0 18px rgba(145,255,243,0.55))
+    drop-shadow(0 0 36px rgba(65,210,255,0.22)) !important;
+  z-index: 20 !important;
+}
+
+.mapRevealLayer .mlLogoMarker:hover .mlLogoMarkerIcon,
+.mapLibreCrystalStage .mlLogoMarker:hover .mlLogoMarkerIcon {
+  transform: scale(1.08) !important;
+  opacity: 1 !important;
+}
+
+.mapRevealLayer .maplibregl-canvas {
+  touch-action: pan-y !important;
+}
