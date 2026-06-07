@@ -247,6 +247,8 @@ function useScrollProgress() {
   const targetRef = useRef(0);
   const currentRef = useRef(0);
   const rafRef = useRef(0);
+  const lastSetRef = useRef(0);
+  const lastValueRef = useRef(0);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -256,20 +258,32 @@ function useScrollProgress() {
       targetRef.current = max > 0 ? clamp01(window.scrollY / max) : 0;
     }
 
-    function tick() {
-      currentRef.current = THREE.MathUtils.lerp(currentRef.current, targetRef.current, 0.18);
+    function tick(now) {
+      currentRef.current = THREE.MathUtils.lerp(currentRef.current, targetRef.current, 0.22);
 
-      if (Math.abs(currentRef.current - targetRef.current) < 0.00045) {
+      if (Math.abs(currentRef.current - targetRef.current) < 0.00065) {
         currentRef.current = targetRef.current;
       }
 
-      setScroll(currentRef.current);
+      // Do not make React re-render the whole site every single frame.
+      // 30fps state updates are enough for DOM/story/map timing; R3F still interpolates internally.
+      const enoughTime = now - lastSetRef.current > 32;
+      const enoughDelta = Math.abs(currentRef.current - lastValueRef.current) > 0.0018;
+      const reachedTarget = currentRef.current === targetRef.current && lastValueRef.current !== currentRef.current;
+
+      if ((enoughTime && enoughDelta) || reachedTarget) {
+        lastSetRef.current = now;
+        lastValueRef.current = currentRef.current;
+        setScroll(currentRef.current);
+      }
+
       rafRef.current = requestAnimationFrame(tick);
     }
 
     readTarget();
     currentRef.current = targetRef.current;
-    setScroll(currentRef.current);
+    lastValueRef.current = targetRef.current;
+    setScroll(targetRef.current);
 
     window.addEventListener("scroll", readTarget, { passive: true });
     window.addEventListener("resize", readTarget);
@@ -3339,6 +3353,7 @@ export default function App() {
   const [preloaderDone, setPreloaderDone] = useState(false);
 
   const lastTrail = useRef(0);
+  const enableMouseTrail = false;
 
   const design = useControls({
     "00_SCROLL_TIMING": folder({
@@ -3531,17 +3546,19 @@ export default function App() {
       siteRef.current.style.setProperty("--my", `${(event.clientY / window.innerHeight) * 100}%`);
     }
 
+    if (!enableMouseTrail) return;
+
     const now = performance.now();
-    if (now - lastTrail.current < 38) return;
+    if (now - lastTrail.current < 72) return;
 
     lastTrail.current = now;
     const id = now;
 
-    setTrails((prev) => [...prev.slice(-16), { id, x: event.clientX, y: event.clientY }]);
+    setTrails((prev) => [...prev.slice(-6), { id, x: event.clientX, y: event.clientY }]);
 
     setTimeout(() => {
       setTrails((prev) => prev.filter((trail) => trail.id !== id));
-    }, 1050);
+    }, 620);
   }
 
   useEffect(() => {
@@ -3572,7 +3589,14 @@ export default function App() {
   // No fullscreen cyan wash: the portal must stay as a real object, not a blue screen overlay.
   const portalWashProgress = 0;
   const portalWashOpacity = 0;
-  const shouldMountMap = scroll >= mapVisualStart + 0.020;
+  const shouldMountCistern =
+    preloaderDone &&
+    scroll >= design.cisternEnterStart - 0.035 &&
+    mapProgress < 0.58;
+
+  const shouldMountMap =
+    scroll >= mapVisualStart + 0.038 &&
+    cisternOpacity < 0.16;
   const showIntroInterface = introOpacity > 0.04 && scroll < design.introFadeEnd + 0.03 && cisternOpacity < 0.18 && mapProgress < 0.02;
   const shouldRenderStory = preloaderDone && scroll >= design.storyReactionStart - 0.035 && introOpacity < 0.14;
 
@@ -3582,7 +3606,7 @@ export default function App() {
   const shouldRenderIntro = introOpacity > 0.012 && cisternOpacity < 0.08 && mapProgress < 0.02;
   const introInteractive = shouldRenderIntro;
   const cisternInteractive = mapProgress < 0.72;
-  const mapInteractive = mapProgress > 0.88;
+  const mapInteractive = mapProgress > 0.94;
 
   return (
     <main
@@ -3628,33 +3652,35 @@ export default function App() {
           </div>
         )}
 
-        <div
-          className="cisternSceneHost cisternPointerOwner"
-          style={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 10,
-            opacity: cisternOpacity,
-            pointerEvents: cisternInteractive ? "auto" : "none",
-            touchAction: "pan-y",
-            transition: "opacity 140ms linear",
-          }}
-        >
-          <CisternSceneLab
-            scrollProgress={labScrollProgress}
-            visibleProgress={1}
-            portalProgress={portalProgress}
-            mapProgress={mapProgress}
-            designMode={false}
-            showStory={true}
-            showLabel={false}
-            showInfoPanel={true}
-            showAnalyzePanel={true}
-            showCrystalInfo={true}
-            showMobilePanels={true}
-            showLeva={false}
-          />
-        </div>
+        {shouldMountCistern && (
+          <div
+            className="cisternSceneHost cisternPointerOwner"
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 10,
+              opacity: cisternOpacity,
+              pointerEvents: cisternInteractive ? "auto" : "none",
+              touchAction: "pan-y",
+              transition: "opacity 120ms linear",
+            }}
+          >
+            <CisternSceneLab
+              scrollProgress={labScrollProgress}
+              visibleProgress={cisternOpacity}
+              portalProgress={portalProgress}
+              mapProgress={mapProgress}
+              designMode={false}
+              showStory={true}
+              showLabel={false}
+              showInfoPanel={true}
+              showAnalyzePanel={true}
+              showCrystalInfo={true}
+              showMobilePanels={true}
+              showLeva={false}
+            />
+          </div>
+        )}
 
         <div
           className="portalTransitionWash"
