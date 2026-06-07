@@ -54,7 +54,7 @@ const MAP_DESIGN_DEFAULTS = {
   buildingNetworkColor: BUILDING_NETWORK_COLOR,
   networkBuildingLimit: 120,
 
-  hoverBuildingsEnabled: false,
+  hoverBuildingsEnabled: true,
   hoverThrottleMs: 180,
   hoverPixelRadius: 8,
   hoverMaxBuildings: 2,
