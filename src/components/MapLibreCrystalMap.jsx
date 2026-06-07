@@ -1416,7 +1416,153 @@ export default function MapLibreCrystalMap({
       }
     });
 
+    
+  // V140: prevent detail-mode icon drift.
+  // In DETAIL mode only the selected/current node marker remains visible.
+  const visibleMapNodes = useMemo(() => {
+    const nodes = typeof MAP_NODES !== "undefined"
+      ? MAP_NODES
+      : typeof CISTERNS !== "undefined"
+      ? CISTERNS
+      : [];
+
+    if (mode !== MODES.DETAIL) return nodes;
+
+    const activeId =
+      selectedNode?.id ||
+      currentNode?.id ||
+      activeNode?.id ||
+      focusedNode?.id ||
+      openNode?.id ||
+      detailNode?.id ||
+      selected?.id ||
+      selected ||
+      current?.id ||
+      current ||
+      active ||
+      activeIdRef?.current;
+
+    return nodes.filter((node) => node.id === activeId);
+  }, [mode, selectedNode, currentNode, activeNode, selected, current]);
+
+  const handleMarkerTouch = (event, node) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    if (typeof selectNode === "function") selectNode(node);
+    else if (typeof setSelectedNode === "function") setSelectedNode(node);
+    else if (typeof setSelected === "function") setSelected(node.id || node);
+  }; // V140_TOUCH_MARKER
+
+
+  // V140 marker event delegation: mobile Safari sometimes drops click on transformed markers.
+  useEffect(() => {
+    const root = containerRef?.current;
+    if (!root) return;
+
+    const onPointerUp = (event) => {
+      const markerEl = event.target?.closest?.(
+        ".mlLogoMarker, .mlCisternMarker, .cisternMarker, .mapMarker, .maplibregl-marker"
+      );
+
+      if (!markerEl) return;
+
+      const id =
+        markerEl.dataset?.id ||
+        markerEl.dataset?.nodeId ||
+        markerEl.getAttribute?.("data-id") ||
+        markerEl.getAttribute?.("data-node-id");
+
+      if (!id) return;
+
+      const nodes = typeof MAP_NODES !== "undefined"
+        ? MAP_NODES
+        : typeof CISTERNS !== "undefined"
+        ? CISTERNS
+        : [];
+
+      const node = nodes.find((item) => item.id === id);
+      if (!node) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (typeof selectNode === "function") selectNode(node);
+      else if (typeof setSelectedNode === "function") setSelectedNode(node);
+      else if (typeof setSelected === "function") setSelected(node.id || node);
+    };
+
+    root.addEventListener("pointerup", onPointerUp, { passive: false });
+    root.addEventListener("touchend", onPointerUp, { passive: false });
+
+    
+  // V141_LOCK_ICON_ANCHORS:
+  // Keep marker DOM anchored to each node's lngLat after connect/detail/flyTo.
+  // This does not change map data; it only prevents CSS/transition drift.
+  useEffect(() => {
+    const map = mapRef?.current;
+    const root = containerRef?.current;
+    if (!map || !root) return;
+
+    const nodes = typeof MAP_NODES !== "undefined"
+      ? MAP_NODES
+      : typeof CISTERNS !== "undefined"
+      ? CISTERNS
+      : [];
+
+    const readLngLat = (node) => {
+      if (!node) return null;
+      if (Array.isArray(node.lngLat)) return node.lngLat;
+      if (Array.isArray(node.coordinates)) return node.coordinates;
+      if (Array.isArray(node.coord)) return node.coord;
+      if (typeof node.lng === "number" && typeof node.lat === "number") return [node.lng, node.lat];
+      if (typeof node.longitude === "number" && typeof node.latitude === "number") return [node.longitude, node.latitude];
+      return null;
+    };
+
+    const lock = () => {
+      root.querySelectorAll("[data-node-id]").forEach((el) => {
+        const id = el.getAttribute("data-node-id");
+        const node = nodes.find((item) => item.id === id);
+        const lngLat = readLngLat(node);
+        if (!lngLat) return;
+
+        const point = map.project(lngLat);
+
+        // Only manually position custom non-MapLibre marker roots.
+        // Native .maplibregl-marker roots already get transformed by MapLibre.
+        if (!el.classList.contains("maplibregl-marker")) {
+          el.style.left = `${point.x}px`;
+          el.style.top = `${point.y}px`;
+        }
+
+        el.style.setProperty("--marker-screen-x", `${point.x}px`);
+        el.style.setProperty("--marker-screen-y", `${point.y}px`);
+        el.style.setProperty("--marker-locked", "1");
+      });
+    };
+
+    lock();
+    map.on("move", lock);
+    map.on("zoom", lock);
+    map.on("rotate", lock);
+    map.on("pitch", lock);
+    map.on("moveend", lock);
+
     return () => {
+      map.off("move", lock);
+      map.off("zoom", lock);
+      map.off("rotate", lock);
+      map.off("pitch", lock);
+      map.off("moveend", lock);
+    };
+  }, [mode, selectedNode, currentNode, activeNode, selected, current]);
+return () => {
+      root.removeEventListener("pointerup", onPointerUp);
+      root.removeEventListener("touchend", onPointerUp);
+    };
+  }, []); // V140 marker event delegation
+
+return () => {
       if (buildingRafRef.current) cancelAnimationFrame(buildingRafRef.current);
       if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
       clearHoveredBuildings();
@@ -1886,12 +2032,15 @@ export default function MapLibreCrystalMap({
 
       {mapDesign.logoMarkerEnabled && (
         <div className="mlLogoMarkerLayer" aria-hidden={false}>
-          {nodeScreenPositions.map((node) => {
+          {nodeScreenPositions
+            .filter((node) => mode === MODES.MAP || node.id === current.id)
+            .map((node) => {
             const isHovered = hovered === node.id;
             const isActive = false;
             return (
               <button
                 key={node.id}
+                data-node-id={node.id}
                 type="button"
                 className={`mlLogoMarker ${isHovered ? "is-hovered" : ""} ${isActive ? "is-active" : ""} ${mapDesign.hoverRingPulseEnabled ? "is-pulse" : ""}`}
                 style={{
