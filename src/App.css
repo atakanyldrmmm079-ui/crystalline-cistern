@@ -2575,3 +2575,276 @@ button:hover {
   visibility: hidden !important;
   pointer-events: none !important;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V78 GSAP SAFE STORY: NO SPLITTYPE DOM MUTATION CRASH                         */
+/* -------------------------------------------------------------------------- */
+.gsapSafeStory {
+  position: absolute !important;
+  left: var(--storyX) !important;
+  top: var(--storyY) !important;
+  width: min(var(--storyMaxWidth), calc(100vw - 96px)) !important;
+  z-index: 9500 !important;
+  pointer-events: none !important;
+  will-change: opacity, transform, filter !important;
+}
+
+.gsapSafeStory.right {
+  left: auto !important;
+  right: var(--storyX) !important;
+  text-align: right !important;
+}
+
+.gsapSafeStoryCard {
+  width: min(620px, 100%) !important;
+  padding: 28px 30px 26px !important;
+  border-left: 1px solid rgba(150, 255, 240, 0.34) !important;
+  border-radius: 0 22px 22px 0 !important;
+  background:
+    linear-gradient(90deg, rgba(2, 6, 7, 0.58), rgba(2, 6, 7, 0.28) 68%, rgba(2, 6, 7, 0.04)),
+    radial-gradient(circle at 0% 0%, rgba(116, 255, 244, 0.10), transparent 48%) !important;
+  backdrop-filter: blur(11px) !important;
+  -webkit-backdrop-filter: blur(11px) !important;
+  box-shadow:
+    0 26px 72px rgba(0,0,0,0.25),
+    inset 0 0 0 1px rgba(255,255,255,0.018) !important;
+}
+
+.gsapSafeStory.right .gsapSafeStoryCard {
+  border-left: none !important;
+  border-right: 1px solid rgba(150, 255, 240, 0.34) !important;
+  border-radius: 22px 0 0 22px !important;
+  background:
+    linear-gradient(270deg, rgba(2, 6, 7, 0.58), rgba(2, 6, 7, 0.28) 68%, rgba(2, 6, 7, 0.04)),
+    radial-gradient(circle at 100% 0%, rgba(116, 255, 244, 0.10), transparent 48%) !important;
+}
+
+.gsapSafeStory .cinematicStoryKicker {
+  margin-bottom: 18px !important;
+  font-family: "Space Grotesk", Inter, Arial, sans-serif !important;
+  font-size: var(--storyKickerSize) !important;
+  letter-spacing: 0.32em !important;
+  color: rgba(170, 255, 244, 0.66) !important;
+  text-transform: uppercase !important;
+}
+
+.gsapSafeStory .cinematicStoryTitle {
+  font-family: "Inter", "Space Grotesk", Arial, sans-serif !important;
+  font-size: clamp(50px, 5vw, var(--storyTitleSize)) !important;
+  line-height: 0.90 !important;
+  letter-spacing: -0.082em !important;
+  font-weight: 300 !important;
+  color: rgba(248, 255, 253, 0.96) !important;
+  text-shadow: 0 0 38px rgba(116, 255, 244, 0.10) !important;
+  overflow: visible !important;
+}
+
+.gsapSafeStory .storyWord {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  vertical-align: bottom !important;
+  padding-bottom: 0.04em !important;
+}
+
+.gsapSafeStory .storyChar {
+  display: inline-block !important;
+  will-change: transform, opacity, filter !important;
+}
+
+.gsapSafeStory .storySpace {
+  white-space: pre !important;
+}
+
+.gsapSafeStory .cinematicStoryLines {
+  margin-top: 18px !important;
+}
+
+.gsapSafeStory .cinematicStoryLine {
+  margin: 8px 0 0 !important;
+  font-size: 13px !important;
+  line-height: 1.52 !important;
+  color: rgba(232, 248, 245, 0.60) !important;
+  letter-spacing: -0.01em !important;
+}
+
+.gsapSafeStory .cinematicStoryLine strong {
+  color: rgba(246, 255, 253, 0.94) !important;
+  font-weight: 430 !important;
+  text-shadow:
+    0 0 12px rgba(127, 255, 238, 0.16),
+    0 0 28px rgba(127, 255, 238, 0.08) !important;
+}
+
+.designToggle,
+[class*="leva"],
+#leva__root {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+@media (max-width: 768px) {
+  .gsapSafeStory,
+  .gsapSafeStory.right {
+    left: 18px !important;
+    right: 18px !important;
+    top: auto !important;
+    bottom: calc(108px + env(safe-area-inset-bottom, 0px)) !important;
+    width: auto !important;
+    text-align: left !important;
+  }
+
+  .gsapSafeStoryCard,
+  .gsapSafeStory.right .gsapSafeStoryCard {
+    width: 100% !important;
+    padding: 16px 17px 17px !important;
+    border-left: 1px solid rgba(150, 255, 240, 0.22) !important;
+    border-right: none !important;
+    border-radius: 0 16px 16px 0 !important;
+    backdrop-filter: blur(5px) !important;
+    -webkit-backdrop-filter: blur(5px) !important;
+  }
+
+  .gsapSafeStory .cinematicStoryTitle {
+    font-size: clamp(28px, 8.4vw, 40px) !important;
+    line-height: 0.96 !important;
+    letter-spacing: -0.065em !important;
+  }
+
+  .gsapSafeStory .cinematicStoryLine {
+    font-size: 10.5px !important;
+    line-height: 1.45 !important;
+  }
+
+  .gsapSafeStory .cinematicStoryKicker {
+    font-size: 7.5px !important;
+    letter-spacing: 0.20em !important;
+    margin-bottom: 10px !important;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V79 STORY SIZE / VISUAL BALANCE + AUDIO BUTTON                              */
+/* -------------------------------------------------------------------------- */
+.gsapSafeStory {
+  width: min(620px, calc(100vw - 110px)) !important;
+}
+
+.gsapSafeStoryCard {
+  width: min(560px, 100%) !important;
+  padding: 22px 24px 22px !important;
+  border-left: 1px solid rgba(150, 255, 240, 0.30) !important;
+  border-radius: 0 20px 20px 0 !important;
+  background:
+    linear-gradient(90deg, rgba(2, 7, 8, 0.50), rgba(2, 7, 8, 0.24) 70%, rgba(2, 7, 8, 0.035)),
+    radial-gradient(circle at 0% 0%, rgba(116, 255, 244, 0.085), transparent 48%) !important;
+  backdrop-filter: blur(9px) !important;
+  -webkit-backdrop-filter: blur(9px) !important;
+  box-shadow:
+    0 22px 64px rgba(0,0,0,0.23),
+    inset 0 0 0 1px rgba(255,255,255,0.016) !important;
+}
+
+.gsapSafeStory.right .gsapSafeStoryCard {
+  border-left: none !important;
+  border-right: 1px solid rgba(150, 255, 240, 0.30) !important;
+  border-radius: 20px 0 0 20px !important;
+}
+
+.gsapSafeStory .cinematicStoryTitle {
+  font-size: clamp(32px, 3.35vw, var(--storyTitleSize)) !important;
+  line-height: 0.94 !important;
+  letter-spacing: -0.068em !important;
+  font-weight: 300 !important;
+  color: rgba(242, 255, 252, 0.94) !important;
+  text-shadow:
+    0 0 22px rgba(116, 255, 244, 0.08),
+    0 12px 42px rgba(0,0,0,0.34) !important;
+}
+
+.gsapSafeStory .cinematicStoryKicker {
+  margin-bottom: 13px !important;
+  font-size: 9px !important;
+  letter-spacing: 0.28em !important;
+  color: rgba(170, 255, 244, 0.58) !important;
+}
+
+.gsapSafeStory .cinematicStoryLines {
+  margin-top: 14px !important;
+}
+
+.gsapSafeStory .cinematicStoryLine {
+  margin: 6px 0 0 !important;
+  font-size: 12px !important;
+  line-height: 1.46 !important;
+  color: rgba(232, 248, 245, 0.56) !important;
+}
+
+.soundToggle {
+  position: fixed;
+  left: 24px;
+  top: 22px;
+  z-index: 100001;
+  pointer-events: auto !important;
+  padding: 10px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(150, 255, 240, 0.28);
+  background: rgba(2, 12, 13, 0.54);
+  color: rgba(226, 255, 250, 0.72);
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 0 22px rgba(120,255,235,0.07);
+  transition: opacity 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.soundToggle.active {
+  color: rgba(246,255,252,0.96);
+  border-color: rgba(150,255,240,0.62);
+  box-shadow: 0 0 24px rgba(120,255,235,0.18);
+}
+
+.soundToggle.error {
+  color: rgba(255, 190, 170, 0.88);
+  border-color: rgba(255, 160, 130, 0.42);
+}
+
+.soundToggle:hover {
+  color: rgba(246,255,252,0.95);
+  border-color: rgba(150,255,240,0.58);
+}
+
+@media (max-width: 768px) {
+  .gsapSafeStory .cinematicStoryTitle {
+    font-size: clamp(24px, 6.6vw, 34px) !important;
+    line-height: 1.0 !important;
+    letter-spacing: -0.052em !important;
+  }
+
+  .gsapSafeStoryCard,
+  .gsapSafeStory.right .gsapSafeStoryCard {
+    padding: 14px 15px 15px !important;
+    backdrop-filter: blur(5px) !important;
+    -webkit-backdrop-filter: blur(5px) !important;
+  }
+
+  .gsapSafeStory .cinematicStoryLine {
+    font-size: 10px !important;
+    line-height: 1.42 !important;
+  }
+
+  .soundToggle {
+    left: 14px;
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    padding: 9px 10px;
+    font-size: 8px;
+    letter-spacing: 0.16em;
+  }
+}
