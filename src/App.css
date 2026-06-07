@@ -3964,67 +3964,63 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
 }
 
 
+
+
+
 /* -------------------------------------------------------------------------- */
-/* V89 MOBILE FINAL: NO CRYSTAL INFO PANEL                                     */
+/* V92 MOBILE BLACK SCREEN FIX                                                 */
 /* -------------------------------------------------------------------------- */
-/* Final mobile rule: CisternSceneLab must be visual scene only.
-   No internal crystal info/analyze/readout/story panels on mobile. */
+/* The previous mobile hard-hide rules were too broad and could hide the R3F
+   canvas wrapper. SceneLab must stay visible; only known DOM UI overlays are
+   suppressed. */
 @media (max-width: 900px) {
+  .site.isMobileLayout .cisternSceneHost,
+  .site.isMobileLayout .cisternSceneHost canvas {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
   .site.isMobileLayout .cisternSceneHost {
     pointer-events: none !important;
+    touch-action: pan-y !important;
   }
 
   .site.isMobileLayout .cisternSceneHost canvas {
     pointer-events: none !important;
-    display: block !important;
+    touch-action: pan-y !important;
+  }
+
+  /* Re-show canvas wrappers in case earlier CSS touched them. */
+  .site.isMobileLayout .cisternSceneHost > div,
+  .site.isMobileLayout .cisternSceneHost div {
     visibility: visible !important;
-    opacity: 1 !important;
   }
 
-  /* Hide every DOM overlay generated inside SceneLab.
-     External App ACT story is outside .cisternSceneHost, so it stays visible. */
-  .site.isMobileLayout .cisternSceneHost > *:not(canvas),
-  .site.isMobileLayout .cisternSceneHost div:not(:has(canvas)),
-  .site.isMobileLayout .cisternSceneHost aside,
-  .site.isMobileLayout .cisternSceneHost button,
-  .site.isMobileLayout .cisternSceneHost section,
-  .site.isMobileLayout .cisternSceneHost article,
-  .site.isMobileLayout .cisternSceneHost nav,
-  .site.isMobileLayout .cisternSceneHost [class],
-  .site.isMobileLayout .cisternSceneHost [style*="position: absolute"],
-  .site.isMobileLayout .cisternSceneHost [style*="position:absolute"],
-  .site.isMobileLayout .cisternSceneHost [style*="position: fixed"],
-  .site.isMobileLayout .cisternSceneHost [style*="position:fixed"] {
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-  }
-
-  /* Re-enable only the canvas chain if it got caught by broad selectors. */
-  .site.isMobileLayout .cisternSceneHost div:has(canvas),
-  .site.isMobileLayout .cisternSceneHost div:has(canvas) *,
-  .site.isMobileLayout .cisternSceneHost canvas {
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-
-  /* Our external ACT story stays as the only story panel before map. */
-  .site.isMobileLayout:not(.act-map) .gsapSafeStory,
-  .site.isMobileLayout:not(.act-map) .cinematicStoryLayer.gsapSafeStory,
-  .site.isMobileLayout:not(.act-map) .cinematicStoryCard.gsapSafeStoryCard {
-    display: block !important;
-    visibility: visible !important;
-    opacity: var(--storyOpacityNow, 1) !important;
-    pointer-events: none !important;
-  }
-
-  /* On map, ACT story closes; only map mission remains. */
-  .site.isMobileLayout.act-map .gsapSafeStory,
-  .site.isMobileLayout.act-map .cinematicStoryLayer.gsapSafeStory,
-  .site.isMobileLayout.act-map .cinematicStoryCard.gsapSafeStoryCard {
+  /* Safe overlay hiding: do NOT target every [class] or every div.
+     Only target likely UI/readout/panel names. */
+  .site.isMobileLayout .cisternSceneHost [class*="readout" i],
+  .site.isMobileLayout .cisternSceneHost [class*="analyze" i],
+  .site.isMobileLayout .cisternSceneHost [class*="infoPanel" i],
+  .site.isMobileLayout .cisternSceneHost [class*="storyPanel" i],
+  .site.isMobileLayout .cisternSceneHost [class*="storyOverlay" i],
+  .site.isMobileLayout .cisternSceneHost [class*="crystalPanel" i],
+  .site.isMobileLayout .cisternSceneHost [class*="nodePanel" i],
+  .site.isMobileLayout .cisternSceneHost [class*="labPanel" i],
+  .site.isMobileLayout .cisternSceneHost [class*="hudPanel" i] {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* On the final map, hide ACT story so only map mission remains. */
+  .site.isMobileLayout.act-map .gsapSafeStory,
+  .site.isMobileLayout.act-map .cinematicStoryLayer.gsapSafeStory {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
   .site.isMobileLayout.act-map .mapMissionOverlay,
@@ -4035,7 +4031,6 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
     opacity: 0.94 !important;
   }
 
-  /* Since SceneLab no longer catches touches on mobile, page can scroll back up. */
   .site.isMobileLayout .mapRevealLayer,
   .site.isMobileLayout .mapLibreCrystalStage,
   .site.isMobileLayout .maplibregl-map,
@@ -4043,23 +4038,5 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
   .site.isMobileLayout .maplibregl-canvas {
     touch-action: pan-y !important;
     overscroll-behavior: auto !important;
-  }
-}
-
-/* Fallback for browsers without :has support: known lab overlay naming patterns. */
-@media (max-width: 900px) {
-  .site.isMobileLayout .cisternSceneHost [class*="panel" i],
-  .site.isMobileLayout .cisternSceneHost [class*="story" i],
-  .site.isMobileLayout .cisternSceneHost [class*="info" i],
-  .site.isMobileLayout .cisternSceneHost [class*="readout" i],
-  .site.isMobileLayout .cisternSceneHost [class*="analyze" i],
-  .site.isMobileLayout .cisternSceneHost [class*="hint" i],
-  .site.isMobileLayout .cisternSceneHost [class*="role" i],
-  .site.isMobileLayout .cisternSceneHost [class*="hud" i],
-  .site.isMobileLayout .cisternSceneHost [class*="ui" i] {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
   }
 }
