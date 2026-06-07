@@ -5122,3 +5122,20 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
 .site.isMobileLayout .cisternSceneHost {
   filter: none !important;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V119 COLUMN TEXTURE READY GATE                                              */
+/* -------------------------------------------------------------------------- */
+/* Original column textures stay enabled. ColumnHall waits until diffuse+normal
+   maps are ready, preventing the white fallback flash without recoloring. */
+
+
+/* -------------------------------------------------------------------------- */
+/* V120 EARLY MOUNT SCENELAB TEXTURES                                          */
+/* -------------------------------------------------------------------------- */
+/* SceneLab now mounts earlier while invisible so column textures can load
+   before the user reaches the scene. Do not hide the canvas with display:none. */
+.cisternSceneHost {
+  display: block !important;
+}
