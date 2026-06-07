@@ -118,7 +118,7 @@ export default function PresentationAudioButton() {
       aria-label={enabled ? "Turn sound off" : "Turn sound on"}
       title={ready ? "Sound" : "Audio file not found or blocked"}
     >
-      {ready ? (enabled ? "SOUND ON" : "SOUND OFF") : "SOUND ERROR"}
+      {ready ? (enabled ? "SOUND ON" : "SOUND OFF") : "AUDIO ERR"}
     </button>
   );
 }
