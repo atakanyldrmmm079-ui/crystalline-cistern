@@ -2576,36 +2576,32 @@ function CinematicStoryLayer({ scroll, design }) {
   const beats = useMemo(() => getCinematicStoryBeats(design), [design]);
 
   const active = useMemo(() => {
-    const fade = Math.max(0.085, Number(design.storyFadeSize ?? 0.105));
+    const fade = Math.max(0.050, Number(design.storyFadeSize ?? 0.070));
 
     const candidates = beats
-      .map((beat, index) => {
+      .map((beat) => {
         const start = Number(beat.start ?? 0);
-        const end = Number(beat.end ?? start + 0.16);
+        const end = Number(beat.end ?? start + 0.14);
         const duration = Math.max(0.001, end - start);
 
-        const rawLocal = range(scroll, start - fade, end + fade);
-        const local = clamp01(rawLocal);
-        const enter = smoother01(range(scroll, start - fade * 0.9, start + fade * 0.95));
-        const exit = 1 - smoother01(range(scroll, end - fade * 0.95, end + fade * 0.95));
+        const enter = smoother01(range(scroll, start - fade * 0.82, start + fade * 0.95));
+        const exit = 1 - smoother01(range(scroll, end - fade * 0.95, end + fade * 0.72));
         const opacity = clamp01(enter * exit);
 
-        const storyLocal = clamp01((scroll - start) / duration);
-        const cinematic = cinematicBell(storyLocal);
+        const local = clamp01((scroll - start) / duration);
+        const cinematic = cinematicBell(local);
+
         const entering = 1 - enter;
         const leaving = 1 - exit;
-
-        const driftY = entering * 30 - leaving * 22;
-        const driftX = beat.align === "right" ? entering * 18 - leaving * 14 : -entering * 18 + leaving * 14;
-        const blur = (entering + leaving) * 10;
-        const scale = 0.982 + opacity * 0.018 + cinematic * 0.002;
+        const driftY = entering * 22 - leaving * 18;
+        const driftX = beat.align === "right" ? entering * 12 - leaving * 8 : -entering * 12 + leaving * 8;
+        const blur = (entering + leaving) * 6.5;
+        const scale = 0.988 + opacity * 0.012 + cinematic * 0.0015;
 
         return {
           beat,
-          index,
           opacity,
           local,
-          storyLocal,
           driftX,
           driftY,
           blur,
@@ -2613,7 +2609,7 @@ function CinematicStoryLayer({ scroll, design }) {
           score: opacity,
         };
       })
-      .filter((item) => item.opacity > 0.012)
+      .filter((item) => item.opacity > 0.018)
       .sort((a, b) => b.score - a.score);
 
     return candidates[0] || null;
@@ -2621,16 +2617,16 @@ function CinematicStoryLayer({ scroll, design }) {
 
   if (!active) return null;
 
-  const { beat, opacity, storyLocal, driftX, driftY, blur, scale } = active;
+  const { beat, opacity, local, driftX, driftY, blur, scale } = active;
   const isMapBeat = beat.id === "network-map";
   const mapBoost = isMapBeat ? design.storyMapOpacityBoost || 1 : 1;
-  const finalOpacity = clamp01(opacity * (design.storyOpacity || 0.92) * mapBoost);
-  const lineProgress = smoother01(range(finalOpacity, 0.08, 0.82));
+  const finalOpacity = clamp01(opacity * (design.storyOpacity || 0.90) * mapBoost);
+  const lineProgress = smoother01(range(finalOpacity, 0.04, 0.78));
 
   return (
     <div
       key={beat.id}
-      className={`cinematicStoryLayer ref-smooth-story ${beat.align === "right" ? "right" : "left"}`}
+      className={`cinematicStoryLayer v73-story-smooth ${beat.align === "right" ? "right" : "left"}`}
       style={{
         "--storyX": `${design.storyX || 4.2}vw`,
         "--storyY": `${design.storyY || 34}vh`,
@@ -2640,19 +2636,16 @@ function CinematicStoryLayer({ scroll, design }) {
         "--storyTitleSize": `${design.storyTitleSize || 52}px`,
         "--storyKickerSize": `${design.storyKickerSize || 10}px`,
         "--storyOpacityNow": finalOpacity,
-        "--storyLocal": storyLocal,
+        "--storyLocal": local,
         "--lineProgress": lineProgress,
         opacity: finalOpacity,
-        filter: `blur(${Math.max(0, blur * 0.18)}px)`,
-        transform: `translate3d(${driftX * 0.24}px, ${driftY * 0.34}px, 0) scale(${scale})`,
+        filter: `blur(${Math.max(0, blur * 0.14)}px)`,
+        transform: `translate3d(${driftX * 0.18}px, ${driftY * 0.26}px, 0) scale(${scale})`,
         pointerEvents: "none",
       }}
     >
-      <div className="cinematicStoryCard ref-smooth-story-card">
-        <div className="cinematicStoryKicker">
-          {beat.eyebrow}
-        </div>
-
+      <div className="cinematicStoryCard v73-story-card">
+        <div className="cinematicStoryKicker">{beat.eyebrow}</div>
         <div className="cinematicStoryText">
           {beat.lines.map((line, lineIndex) => (
             <div
@@ -2660,15 +2653,12 @@ function CinematicStoryLayer({ scroll, design }) {
               key={`${beat.id}-${lineIndex}`}
               style={{
                 "--lineIndex": lineIndex,
-                "--lineDelay": `${lineIndex * 78}ms`,
+                "--lineDelay": `${lineIndex * 70}ms`,
               }}
             >
               <span className="cinematicStoryLineText">
                 {line.map((part, partIndex) => {
-                  if (typeof part === "string") {
-                    return <span key={partIndex}>{part}</span>;
-                  }
-
+                  if (typeof part === "string") return <span key={partIndex}>{part}</span>;
                   return (
                     <span key={partIndex} className={part.strong ? "is-strong" : "is-muted"}>
                       {part.text}
@@ -3843,12 +3833,12 @@ export default function App() {
       storyX: { value: 4.2, min: 0, max: 30, step: 0.1 },
       storyY: { value: 34, min: 5, max: 80, step: 0.5 },
       storyMaxWidth: { value: 880, min: 360, max: 1400, step: 10 },
-      storyOpacity: { value: 0.92, min: 0, max: 1, step: 0.01 },
+      storyOpacity: { value: 0.9, min: 0, max: 1, step: 0.01 },
       storyTitleSize: { value: 52, min: 18, max: 92, step: 1 },
       storyKickerSize: { value: 10, min: 7, max: 18, step: 1 },
-      storyFadeSize: { value: 0.105, min: 0.008, max: 0.16, step: 0.002 },
-      storyDrift: { value: 22, min: 0, max: 80, step: 1 },
-      storyGlow: { value: 0.2, min: 0, max: 1.2, step: 0.01 },
+      storyFadeSize: { value: 0.07, min: 0.008, max: 0.16, step: 0.002 },
+      storyDrift: { value: 18, min: 0, max: 80, step: 1 },
+      storyGlow: { value: 0.24, min: 0, max: 1.2, step: 0.01 },
       storyBlur: { value: 0.0, min: 0, max: 8, step: 0.1 },
       storyGlitch: { value: 0, min: 0, max: 1.2, step: 0.01 },
       storyHoverGlitch: { value: 0, min: 0, max: 2.4, step: 0.01 },
@@ -3859,29 +3849,29 @@ export default function App() {
       storyMapGlow: { value: 0.18, min: 0, max: 1.6, step: 0.01 },
       storyMapBlur: { value: 0, min: 0, max: 8, step: 0.1 },
 
-      storyDescentStart: { value: 0.125, min: 0.02, max: 0.42, step: 0.005 },
-      storyDescentEnd: { value: 0.33, min: 0.06, max: 0.55, step: 0.005 },
-      storyReactionStart: { value: 0.285, min: 0.1, max: 0.6, step: 0.005 },
-      storyReactionEnd: { value: 0.5, min: 0.16, max: 0.72, step: 0.005 },
-      storyCoreStart: { value: 0.455, min: 0.22, max: 0.76, step: 0.005 },
-      storyCoreEnd: { value: 0.66, min: 0.28, max: 0.84, step: 0.005 },
-      storyPortalStart: { value: 0.61, min: 0.36, max: 0.9, step: 0.005 },
-      storyPortalEnd: { value: 0.805, min: 0.44, max: 0.95, step: 0.005 },
-      storyMapStart: { value: 0.795, min: 0.5, max: 0.99, step: 0.005 },
-      storyMapEnd: { value: 0.885, min: 0.58, max: 1.0, step: 0.005 },
+      storyDescentStart: { value: 0.215, min: 0.02, max: 0.42, step: 0.005 },
+      storyDescentEnd: { value: 0.355, min: 0.06, max: 0.55, step: 0.005 },
+      storyReactionStart: { value: 0.365, min: 0.1, max: 0.6, step: 0.005 },
+      storyReactionEnd: { value: 0.505, min: 0.16, max: 0.72, step: 0.005 },
+      storyCoreStart: { value: 0.515, min: 0.22, max: 0.76, step: 0.005 },
+      storyCoreEnd: { value: 0.65, min: 0.28, max: 0.84, step: 0.005 },
+      storyPortalStart: { value: 0.66, min: 0.36, max: 0.9, step: 0.005 },
+      storyPortalEnd: { value: 0.79, min: 0.44, max: 0.95, step: 0.005 },
+      storyMapStart: { value: 0.805, min: 0.5, max: 0.99, step: 0.005 },
+      storyMapEnd: { value: 0.875, min: 0.58, max: 1.0, step: 0.005 },
 
       guideEnabled: true,
       guideOpacity: { value: 0.92, min: 0, max: 1, step: 0.01 },
       guideX: { value: 72, min: 0, max: 92, step: 0.1 },
       guideY: { value: 82, min: 20, max: 96, step: 0.5 },
       guideFadeSize: { value: 0.035, min: 0.006, max: 0.12, step: 0.002 },
-      guideDescendStart: { value: 0.05, min: 0.0, max: 0.28, step: 0.005 },
-      guideDescendEnd: { value: 0.19, min: 0.04, max: 0.4, step: 0.005 },
-      guideAnalyzeStart: { value: 0.155, min: 0.04, max: 0.7, step: 0.005 },
-      guideAnalyzeEnd: { value: 0.65, min: 0.2, max: 0.84, step: 0.005 },
-      guidePortalStart: { value: 0.59, min: 0.32, max: 0.9, step: 0.005 },
-      guidePortalEnd: { value: 0.815, min: 0.4, max: 0.96, step: 0.005 },
-      guideMapStart: { value: 0.815, min: 0.56, max: 0.99, step: 0.005 },
+      guideDescendStart: { value: 0.055, min: 0.0, max: 0.28, step: 0.005 },
+      guideDescendEnd: { value: 0.18, min: 0.04, max: 0.4, step: 0.005 },
+      guideAnalyzeStart: { value: 0.21, min: 0.04, max: 0.7, step: 0.005 },
+      guideAnalyzeEnd: { value: 0.61, min: 0.2, max: 0.84, step: 0.005 },
+      guidePortalStart: { value: 0.63, min: 0.32, max: 0.9, step: 0.005 },
+      guidePortalEnd: { value: 0.79, min: 0.4, max: 0.96, step: 0.005 },
+      guideMapStart: { value: 0.805, min: 0.56, max: 0.99, step: 0.005 },
       guideMapEnd: { value: 0.99, min: 0.62, max: 1, step: 0.005 },
     }),
 
@@ -3902,7 +3892,7 @@ export default function App() {
 
     "APP_FLOW": folder({
       // Total page height. Lower value = less empty wheel travel and faster cinematic movement.
-      scrollHeightVh: { value: 860, min: 500, max: 1200, step: 10 },
+      scrollHeightVh: { value: 820, min: 500, max: 1200, step: 10 },
       cisternEnterStart: { value: 0.09, min: 0.02, max: 0.5, step: 0.005 },
       cisternEnterEnd: { value: 0.19, min: 0.08, max: 0.65, step: 0.005 },
       // Camera motion starts as soon as the CisternSceneLab is visible.
@@ -3913,10 +3903,10 @@ export default function App() {
       portalEnd: { value: 0.8, min: 0.4, max: 0.99, step: 0.005 },
       // Dedicated crossfade controls. These remove the half-map / half-cistern stuck frame.
       mapVisualStart: { value: 0.805, min: 0.5, max: 0.98, step: 0.005 },
-      mapVisualEnd: { value: 0.895, min: 0.55, max: 1.0, step: 0.005 },
+      mapVisualEnd: { value: 0.89, min: 0.55, max: 1.0, step: 0.005 },
       cisternFadeLead: { value: 0.07, min: 0, max: 0.08, step: 0.002 },
       mapMountLead: { value: 0.08, min: 0, max: 0.08, step: 0.002 },
-      progressSmoothing: { value: 0.52, min: 0, max: 1, step: 0.01 },
+      progressSmoothing: { value: 0.44, min: 0, max: 1, step: 0.01 },
     }),
 
     "06_LIGHT_FOG_BLOOM": folder({
@@ -4020,7 +4010,8 @@ export default function App() {
   const portalWashProgress = 0;
   const portalWashOpacity = 0;
   const shouldMountMap = scroll >= mapVisualStart - (design.mapMountLead ?? 0.018);
-  const showIntroInterface = introOpacity > 0.04 && cisternOpacity < 0.12 && mapProgress < 0.02;
+  const showIntroInterface = introOpacity > 0.06 && scroll < design.storyDescentStart - 0.025 && cisternOpacity < 0.18 && mapProgress < 0.02;
+  const shouldRenderStory = preloaderDone && scroll >= design.storyDescentStart - 0.018 && introOpacity < 0.18;
 
   /* V69 mobile layout uses CSS-only resizing; desktop timing preserved. */
   // HARD POINTER OWNERSHIP
@@ -4152,7 +4143,7 @@ export default function App() {
 
         {showIntroInterface && <IntroMinimalInterface introOpacity={introOpacity} />}
 
-        {preloaderDone && <CinematicStoryLayer scroll={scroll} design={design} />}
+        {shouldRenderStory && <CinematicStoryLayer scroll={scroll} design={design} />}
         {preloaderDone && <MapMissionOverlay scroll={scroll} design={design} activatedNodes={activatedNodes} />}
         {preloaderDone && <CinematicGuideLayer scroll={scroll} design={design} />}
       </section>
