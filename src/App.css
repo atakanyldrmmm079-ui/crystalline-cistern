@@ -5270,3 +5270,131 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
     filter: none !important;
   }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V131 FIX APP SYNTAX                                                         */
+/* -------------------------------------------------------------------------- */
+/* Fixes Vite build syntax error near App.jsx line 3777. */
+
+
+/* -------------------------------------------------------------------------- */
+/* V134 NO MAPLIBRE TOUCH / RESTORE MAP HOVER                                  */
+/* -------------------------------------------------------------------------- */
+/* MapLibre component files are not changed. This only fixes App/CSS layer
+   ownership so the existing MapLibre hover code can receive mousemove events. */
+
+/* Map must sit above SceneLab once map is visible. */
+.mapRevealLayer {
+  z-index: 9200 !important;
+  pointer-events: none !important;
+}
+
+.mapRevealLayer.visible,
+.site .mapRevealLayer.visible {
+  pointer-events: auto !important;
+}
+
+/* Let existing MapLibre canvas/layers receive mousemove. */
+.mapRevealLayer.visible .maplibregl-map,
+.mapRevealLayer.visible .maplibregl-canvas-container,
+.mapRevealLayer.visible .maplibregl-canvas,
+.mapRevealLayer.visible .mapLibreCrystalStage {
+  pointer-events: auto !important;
+}
+
+/* During map phase, SceneLab must not cover the map and steal hover. */
+.site:has(.mapRevealLayer.visible) .cisternSceneHost {
+  pointer-events: none !important;
+}
+
+/* Story/panels should not block the map hover. */
+.site:has(.mapRevealLayer.visible) .gsapSafeStory,
+.site:has(.mapRevealLayer.visible) .cinematicStoryLayer,
+.site:has(.mapRevealLayer.visible) .cinematicStoryCard,
+.site:has(.mapRevealLayer.visible) .mapMissionPanel,
+.site:has(.mapRevealLayer.visible) .mapMissionInner {
+  pointer-events: none !important;
+}
+
+/* Desktop hover: keep mousemove normal. */
+@media (min-width: 901px) {
+  .mapRevealLayer.visible,
+  .mapRevealLayer.visible .maplibregl-map,
+  .mapRevealLayer.visible .maplibregl-canvas-container,
+  .mapRevealLayer.visible .maplibregl-canvas {
+    touch-action: auto !important;
+    cursor: crosshair !important;
+  }
+}
+
+/* Mobile: let vertical page scroll win, but do not affect desktop hover. */
+@media (max-width: 900px) {
+  .mapRevealLayer.visible .maplibregl-canvas {
+    touch-action: pan-y !important;
+  }
+}
+
+/* Fallback for browsers without :has(): when map is visible, it is above everything anyway. */
+.mapRevealLayer.visible {
+  isolation: isolate;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V140 FINAL MOBILE MAP ICONS + QUALITY                                       */
+/* -------------------------------------------------------------------------- */
+/* Mobile map icons must be clickable. Do not let earlier mobile scroll fixes
+   disable MapLibre markers. */
+
+@media (max-width: 900px) {
+  .site.isMobileLayout .mapRevealLayer.visible {
+    pointer-events: auto !important;
+  }
+
+  .site.isMobileLayout .mapRevealLayer.visible .maplibregl-map,
+  .site.isMobileLayout .mapRevealLayer.visible .maplibregl-canvas-container,
+  .site.isMobileLayout .mapRevealLayer.visible .mapLibreCrystalStage {
+    pointer-events: auto !important;
+  }
+
+  /* Canvas can receive map gestures only in map phase; markers must always click. */
+  .site.isMobileLayout .mapRevealLayer.visible .maplibregl-canvas {
+    pointer-events: auto !important;
+    touch-action: pan-x pan-y !important;
+  }
+
+  .site.isMobileLayout .mapRevealLayer.visible .maplibregl-marker,
+  .site.isMobileLayout .mapRevealLayer.visible .mlLogoMarker,
+  .site.isMobileLayout .mapRevealLayer.visible .mlCisternMarker,
+  .site.isMobileLayout .mapRevealLayer.visible .cisternMarker,
+  .site.isMobileLayout .mapRevealLayer.visible .mapMarker,
+  .site.isMobileLayout .mapRevealLayer.visible [class*="Marker" i],
+  .site.isMobileLayout .mapRevealLayer.visible [class*="marker" i],
+  .site.isMobileLayout .mapRevealLayer.visible button {
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    cursor: pointer !important;
+  }
+
+  .site.isMobileLayout .cisternSceneHost {
+    filter: contrast(1.022) saturate(1.02) !important;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V141 LOCK MAP ICONS                                                         */
+/* -------------------------------------------------------------------------- */
+/* Keep global hover rules from moving marker roots after connect/detail mode. */
+.mapRevealLayer.visible .maplibregl-marker {
+  pointer-events: auto !important;
+}
+
+.mapRevealLayer.visible .maplibregl-marker:hover {
+  /* MapLibre owns translate(); don't overwrite root transform here. */
+  filter:
+    drop-shadow(0 0 18px rgba(145,255,243,0.55))
+    drop-shadow(0 0 36px rgba(65,210,255,0.22)) !important;
+  z-index: 20 !important;
+}
