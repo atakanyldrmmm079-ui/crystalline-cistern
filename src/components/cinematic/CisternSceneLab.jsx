@@ -3642,6 +3642,50 @@ try {
 }
 
 
+
+function applySceneTextureSampling(texture, gl) {
+  if (!texture) return;
+
+  const maxAnisotropy = gl?.capabilities?.getMaxAnisotropy?.() || 4;
+
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.anisotropy = Math.min(maxAnisotropy, 4);
+
+  if (texture.isTexture) {
+    texture.colorSpace = texture.colorSpace || THREE.SRGBColorSpace;
+  }
+
+  texture.needsUpdate = true;
+}
+
+function TextureSamplingWarmupPass() {
+  const { gl, scene } = useThree();
+  const frameRef = useRef(0);
+
+  useFrame(() => {
+    if (!scene || frameRef.current > 24) return;
+    frameRef.current += 1;
+
+    scene.traverse((object) => {
+      if (!object?.isMesh || !object.material) return;
+
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+
+      materials.forEach((material) => {
+        if (!material) return;
+
+        ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap"].forEach((key) => {
+          if (material[key]) applySceneTextureSampling(material[key], gl);
+        });
+      });
+    });
+  });
+
+  return null;
+}
+
 export default 
 function CisternSceneLab({
 scrollProgress = 0,
@@ -3667,7 +3711,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
       vignette: { value: 0.48, min: 0, max: 1, step: 0.01 },
       fogNear: { value: 8.4, min: 0, max: 25, step: 0.1 },
       fogFar: { value: 38, min: 5, max: 90, step: 0.5 },
-      dprMax: { value: mobile ? 0.88 : 1.05, min: 0.65, max: 1.3, step: 0.05 },
+      dprMax: { value: mobile ? 0.92 : 1.12, min: 0.65, max: 1.35, step: 0.05 },
     });
 
   const storyControls = useControls("Story", {
@@ -3681,7 +3725,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
     sparkles: { value: true },
     sparkleCount: { value: mobile ? 2 : 6, min: 0, max: 40, step: 1 },
     frameloopAlways: { value: true },
-    lowPowerDpr: { value: mobile ? 0.74 : 0.88, min: 0.65, max: 1.05, step: 0.05 },
+    lowPowerDpr: { value: mobile ? 0.78 : 0.96, min: 0.65, max: 1.12, step: 0.05 },
   });
 
   const [activeModeIndex, setActiveModeIndex] = useState(0);
@@ -3723,7 +3767,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
 
       <Canvas
         shadows={perf.contactShadows}
-        dpr={[0.65, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.74 : 0.88)]}
+        dpr={[0.72, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.78 : 0.96)]}
         eventSource={rootRef}
         eventPrefix="client"
         onCreated={(state) => {
@@ -3746,7 +3790,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
         frameloop={labOpacity > 0.035 && mapProgress < 0.46 ? "always" : "demand"}
         performance={{ min: mobile ? 0.32 : 0.42 }}
         gl={{
-          antialias: false,
+          antialias: !mobile,
           stencil: false,
           depth: true,
           alpha: false,
@@ -3759,6 +3803,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
           <SceneWarmup enabled={visibleProgress > 0.02} />
 
           <ambientLight intensity={0.58} />
+        <TextureSamplingWarmupPass />
         <SceneContent
             fogNear={fogNear}
             fogFar={fogFar}
