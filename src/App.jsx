@@ -218,6 +218,30 @@ function eachMaterial(material, callback) {
   else if (material) callback(material);
 }
 
+
+function useIsMobileViewport() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth <= 768 : false
+  );
+
+  useEffect(() => {
+    const update = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+    };
+  }, []);
+
+  return isMobile;
+}
+
 function useScrollProgress() {
   const [scroll, setScroll] = useState(0);
   const targetRef = useRef(0);
@@ -3270,6 +3294,7 @@ function IntroOnlyScene({ scroll, design, hovered, selected }) {
 
 export default function App() {
   const scroll = useScrollProgress();
+  const isMobileViewport = useIsMobileViewport();
   const siteRef = useRef(null);
 
   const designMode = false;
@@ -3529,7 +3554,7 @@ export default function App() {
   return (
     <main
       ref={siteRef}
-      className={`site storySite act-${activeStory.slug} ${fullNetwork ? "networkComplete" : ""}`}
+      className={`site storySite act-${activeStory.slug} ${fullNetwork ? "networkComplete" : ""} ${isMobileViewport ? "isMobileLayout" : ""}`}
       onMouseMove={showIntroInterface ? handleMouseMove : undefined}
       style={{ minHeight: `${design.scrollHeightVh}vh`, pointerEvents: "auto" }}
     >
@@ -3588,7 +3613,7 @@ export default function App() {
             portalProgress={portalProgress}
             mapProgress={mapProgress}
             designMode={false}
-            showStory={true}
+            showStory={!isMobileViewport}
             showLabel={false}
             showLeva={false}
           />
