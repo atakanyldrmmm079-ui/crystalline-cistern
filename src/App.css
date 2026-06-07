@@ -5106,28 +5106,14 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
 
 
 /* -------------------------------------------------------------------------- */
-/* V115 TEXTURE WARMUP + SHARPNESS                                             */
+/* V116 COLUMN NO-TEXTURE FALLBACK                                             */
 /* -------------------------------------------------------------------------- */
-/* Keeps v83/v114 visual tone. Adds texture cache warmup and moderate crispness. */
+/* Texture warmup caused SceneLab entry lag and still did not solve white columns.
+   This version does NOT wait for procedural column textures. It gives columns a
+   one-time dark stone fallback so they never appear pure white. */
 
-.cisternSceneHost canvas,
-.introSceneLayer canvas,
-.mapRevealLayer canvas {
-  image-rendering: auto !important;
-  transform: translateZ(0);
-}
-
-/* Keep the original dark look; do not re-add brightness filters. */
 .cisternSceneHost,
 .site.isCompactLayout:not(.isMobileLayout) .cisternSceneHost,
 .site.isMobileLayout .cisternSceneHost {
   filter: none !important;
-}
-
-/* Slightly crisper crystal/story edges without changing scene lighting. */
-.gsapSafeStory,
-.cinematicStoryLayer,
-.cisternSceneHost {
-  -webkit-font-smoothing: antialiased;
-  text-rendering: geometricPrecision;
 }
