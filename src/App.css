@@ -5198,3 +5198,38 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
 .mapRevealLayer .maplibregl-canvas {
   touch-action: pan-y !important;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V122 MOBILE ANALYZE OFF                                                     */
+/* -------------------------------------------------------------------------- */
+/* Mobile must not show internal crystal analyze/info panels.
+   Desktop and compact laptop keep analyze panel. */
+@media (max-width: 900px) {
+  .site.isMobileLayout .cisternSceneHost [class*="Analyze" i],
+  .site.isMobileLayout .cisternSceneHost [class*="InfoPanel" i],
+  .site.isMobileLayout .cisternSceneHost [class*="StoryPanel" i],
+  .site.isMobileLayout .cisternSceneHost [class*="Readout" i],
+  .site.isMobileLayout .cisternSceneHost [class*="crystalStory" i],
+  .site.isMobileLayout .cisternSceneHost [class*="crystalInfo" i],
+  .site.isMobileLayout .cisternSceneHost [class*="analysis" i],
+  .site.isMobileLayout .cisternSceneHost [class*="analyze" i],
+  .site.isMobileLayout .cisternSceneHost [class*="readout" i] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  .site.isMobileLayout .cisternSceneHost {
+    pointer-events: none !important;
+    touch-action: pan-y !important;
+  }
+
+  .site.isMobileLayout .cisternSceneHost canvas {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+  }
+}
