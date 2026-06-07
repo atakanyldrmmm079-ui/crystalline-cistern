@@ -1876,7 +1876,7 @@ function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 
   const pointerTargetRef = useRef(new THREE.Vector2(0, 0));
   const pointerUniformRef = useRef(new THREE.Vector2(0, 0));
 
-  const defaultCount = mobile ? 460 : 820;
+  const defaultCount = mobile ? 340 : 620;
 
   const {
     particleEnabled,
@@ -1908,7 +1908,7 @@ function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 
   } = useControls("Scattering Particles", {
     particleEnabled: true,
     particleCount: { value: defaultCount, min: 180, max: 2600, step: 50 },
-    particleOpacity: { value: mobile ? 0.32 : 0.38, min: 0, max: 1, step: 0.01 },
+    particleOpacity: { value: mobile ? 0.26 : 0.32, min: 0, max: 1, step: 0.01 },
     particleSize: { value: 0.058, min: 0.01, max: 0.22, step: 0.001 },
     particleSpeed: { value: 0.28, min: 0, max: 1.4, step: 0.01 },
     particleHeight: { value: 2.95, min: 0.6, max: 7.5, step: 0.05 },
@@ -3635,7 +3635,7 @@ export default function CisternSceneLab({
     useControls("Scene", {
       autoCamera: true,
       exposure: { value: 1.18, min: 0.1, max: 2.4, step: 0.01 },
-      bloom: { value: mobile ? 0.38 : 0.48, min: 0, max: 2, step: 0.01 },
+      bloom: { value: mobile ? 0.30 : 0.40, min: 0, max: 2, step: 0.01 },
       vignette: { value: 0.48, min: 0, max: 1, step: 0.01 },
       fogNear: { value: 8.4, min: 0, max: 25, step: 0.1 },
       fogFar: { value: 38, min: 5, max: 90, step: 0.5 },
@@ -3651,7 +3651,7 @@ export default function CisternSceneLab({
     portalDistortion: { value: !mobile },
     contactShadows: { value: false },
     sparkles: { value: true },
-    sparkleCount: { value: mobile ? 18 : 34, min: 0, max: 140, step: 1 },
+    sparkleCount: { value: mobile ? 10 : 22, min: 0, max: 140, step: 1 },
     frameloopAlways: { value: true },
     lowPowerDpr: { value: mobile ? 0.95 : 1.12, min: 0.75, max: 1.45, step: 0.05 },
   });
@@ -3695,7 +3695,7 @@ export default function CisternSceneLab({
 
       <Canvas
         shadows={perf.contactShadows}
-        dpr={[0.85, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.95 : 1.18)]}
+        dpr={[0.75, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.85 : 1.05)]}
         eventSource={rootRef}
         eventPrefix="client"
         onCreated={(state) => {
