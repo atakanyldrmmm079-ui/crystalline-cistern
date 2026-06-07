@@ -3,17 +3,10 @@ import React, { useEffect, useRef, useState } from "react";
 const AUDIO_CONFIG = {
   ambientSrc: "/audio/ambient_loop.mp3",
   waterSrc: "/audio/water_loop.mp3",
-
-  // Keep ambience low for presentation.
   ambientVolume: 0.085,
-
-  // Water must stay under ambience.
-  waterVolume: 0.026,
-
-  // SceneLab scroll range.
+  waterVolume: 0.028,
   waterStart: 0.18,
   waterEnd: 0.835,
-
   fadeSpeedAmbient: 0.035,
   fadeSpeedWater: 0.045,
 };
@@ -25,8 +18,8 @@ function getScrollProgress() {
 
 export default function PresentationAudioButton() {
   const [enabled, setEnabled] = useState(false);
+  const [ready, setReady] = useState(true);
   const enabledRef = useRef(false);
-
   const ambientRef = useRef(null);
   const waterRef = useRef(null);
   const rafRef = useRef(0);
@@ -39,22 +32,15 @@ export default function PresentationAudioButton() {
   useEffect(() => {
     return () => {
       cancelAnimationFrame(rafRef.current);
-
-      try {
-        if (ambientRef.current) {
-          ambientRef.current.pause();
-          ambientRef.current.src = "";
-          ambientRef.current = null;
+      [ambientRef.current, waterRef.current].forEach((audio) => {
+        try {
+          if (!audio) return;
+          audio.pause();
+          audio.src = "";
+        } catch (error) {
+          console.warn("Audio cleanup skipped safely:", error);
         }
-
-        if (waterRef.current) {
-          waterRef.current.pause();
-          waterRef.current.src = "";
-          waterRef.current = null;
-        }
-      } catch (error) {
-        console.warn("Audio cleanup skipped safely:", error);
-      }
+      });
     };
   }, []);
 
@@ -78,26 +64,17 @@ export default function PresentationAudioButton() {
 
   function tickAudio() {
     try {
-      const ambient = ambientRef.current;
-      const water = waterRef.current;
-
       const progress = getScrollProgress();
-      const waterZone =
-        progress >= AUDIO_CONFIG.waterStart &&
-        progress <= AUDIO_CONFIG.waterEnd;
-
+      const waterZone = progress >= AUDIO_CONFIG.waterStart && progress <= AUDIO_CONFIG.waterEnd;
       const ambientTarget = enabledRef.current ? AUDIO_CONFIG.ambientVolume : 0;
-      const waterTarget =
-        enabledRef.current && waterZone ? AUDIO_CONFIG.waterVolume : 0;
+      const waterTarget = enabledRef.current && waterZone ? AUDIO_CONFIG.waterVolume : 0;
 
-      if (ambient) {
-        ambient.volume +=
-          (ambientTarget - ambient.volume) * AUDIO_CONFIG.fadeSpeedAmbient;
+      if (ambientRef.current) {
+        ambientRef.current.volume += (ambientTarget - ambientRef.current.volume) * AUDIO_CONFIG.fadeSpeedAmbient;
       }
 
-      if (water) {
-        water.volume +=
-          (waterTarget - water.volume) * AUDIO_CONFIG.fadeSpeedWater;
+      if (waterRef.current) {
+        waterRef.current.volume += (waterTarget - waterRef.current.volume) * AUDIO_CONFIG.fadeSpeedWater;
       }
     } catch (error) {
       console.warn("Audio fade skipped safely:", error);
@@ -108,11 +85,11 @@ export default function PresentationAudioButton() {
 
   async function startAudio() {
     try {
+      setReady(true);
       ensureAudioElements();
 
       if (!startedRef.current) {
-        await ambientRef.current.play();
-        await waterRef.current.play();
+        await Promise.all([ambientRef.current.play(), waterRef.current.play()]);
         startedRef.current = true;
         cancelAnimationFrame(rafRef.current);
         rafRef.current = requestAnimationFrame(tickAudio);
@@ -120,7 +97,8 @@ export default function PresentationAudioButton() {
 
       setEnabled(true);
     } catch (error) {
-      console.warn("Audio could not start safely:", error);
+      console.warn("Audio could not start. Check public/audio files and browser autoplay rules:", error);
+      setReady(false);
       setEnabled(false);
     }
   }
@@ -132,14 +110,15 @@ export default function PresentationAudioButton() {
   return (
     <button
       type="button"
-      className={`soundToggle ${enabled ? "active" : ""}`}
+      className={`soundToggle ${enabled ? "active" : ""} ${ready ? "" : "error"}`}
       onClick={() => {
         if (enabled) stopAudio();
         else startAudio();
       }}
       aria-label={enabled ? "Turn sound off" : "Turn sound on"}
+      title={ready ? "Sound" : "Audio file not found or blocked"}
     >
-      {enabled ? "SOUND ON" : "SOUND OFF"}
+      {ready ? (enabled ? "SOUND ON" : "SOUND OFF") : "SOUND ERROR"}
     </button>
   );
 }
