@@ -1870,14 +1870,14 @@ function CrystalBackFog({ portalProgress = 0, activeMode = CRYSTAL_MODES[0] }) {
 
 function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 }) {
   const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")));
-const points = useRef();
+  const points = useRef();
   const interactionMeshRef = useRef();
   const hoverStrengthRef = useRef(0);
   const burstRef = useRef(0);
   const pointerTargetRef = useRef(new THREE.Vector2(0, 0));
   const pointerUniformRef = useRef(new THREE.Vector2(0, 0));
 
-  const defaultCount = mobile ? 140 : 260;
+  const defaultCount = mobile ? 220 : 420;
 
   const {
     particleEnabled,
@@ -1908,8 +1908,8 @@ const points = useRef();
     particleBurstDecay,
   } = useControls("Scattering Particles", {
     particleEnabled: true,
-    particleCount: { value: defaultCount, min: 60, max: 900, step: 20 },
-    particleOpacity: { value: mobile ? 0.32 : 0.40, min: 0, max: 1, step: 0.01 },
+    particleCount: { value: defaultCount, min: 100, max: 1200, step: 40 },
+    particleOpacity: { value: mobile ? 0.30 : 0.38, min: 0, max: 1, step: 0.01 },
     particleSize: { value: 0.058, min: 0.01, max: 0.22, step: 0.001 },
     particleSpeed: { value: 0.28, min: 0, max: 1.4, step: 0.01 },
     particleHeight: { value: 2.95, min: 0.6, max: 7.5, step: 0.05 },
@@ -3620,81 +3620,8 @@ function SceneContent({
   );
 }
 
-
-
-
-
-
-function ColumnNoTextureFallbackPass() {
-  const { scene } = useThree();
-  const doneRef = useRef(false);
-
-  useEffect(() => {
-    if (doneRef.current || !scene) return;
-    doneRef.current = true;
-
-    // One-time only. No texture loading, no frame loop.
-    // Goal: procedural cistern columns must never appear pure white.
-    requestAnimationFrame(() => {
-      let i = 0;
-
-      scene.traverse((object) => {
-        if (!object?.isMesh || !object.material) return;
-
-        const name = `${object.name || ""} ${object.userData?.type || ""}`.toLowerCase();
-        const geometryType = object.geometry?.type || "";
-
-        const looksLikeColumn =
-          name.includes("column") ||
-          name.includes("pillar") ||
-          name.includes("cistern") ||
-          name.includes("capital") ||
-          name.includes("base");
-
-        const cylinderLike =
-          geometryType.includes("Cylinder") &&
-          object.scale?.y > 0.75 &&
-          object.scale?.x < 2.8 &&
-          object.scale?.z < 2.8;
-
-        if (!looksLikeColumn && !cylinderLike) return;
-
-        const materials = Array.isArray(object.material) ? object.material : [object.material];
-
-        materials.forEach((mat) => {
-          if (!mat) return;
-
-          // Kill late texture dependency for procedural columns:
-          // if a map is not immediately ready, don't wait with white fallback.
-          if (!mat.map && mat.color) {
-            const shade = 0.62 + (i % 6) * 0.035;
-            mat.color.set("#4f5d59").multiplyScalar(shade);
-          }
-
-          // If map exists but material color is pure white and the map still hasn't visually appeared,
-          // keep neutral but not glowing white.
-          if (mat.color && mat.color.r > 0.92 && mat.color.g > 0.92 && mat.color.b > 0.92) {
-            mat.color.set("#6b7b75");
-          }
-
-          if (typeof mat.roughness === "number") mat.roughness = Math.max(mat.roughness, 0.72);
-          if (typeof mat.metalness === "number") mat.metalness = Math.min(mat.metalness, 0.04);
-          if (typeof mat.envMapIntensity === "number") mat.envMapIntensity = Math.min(mat.envMapIntensity, 0.10);
-
-          mat.needsUpdate = true;
-        });
-
-        i += 1;
-      });
-    });
-  }, [scene]);
-
-  return null;
-}
-
-export default 
-function CisternSceneLab({
-scrollProgress = 0,
+export default function CisternSceneLab({
+  scrollProgress = 0,
   visibleProgress = 1,
   portalProgress = 0,
   mapProgress = 0,
@@ -3702,12 +3629,8 @@ scrollProgress = 0,
   showStory = true,
   showLabel = true,
   showLeva = false,
-  showInfoPanel = true,
-  showAnalyzePanel = true,
-  showCrystalInfo = true,
-  showMobilePanels = true,
 } = {}) {
-const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")));
+  const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")));
 
   const { autoCamera, exposure, bloom, vignette, fogNear, fogFar, dprMax } =
     useControls("Scene", {
@@ -3748,7 +3671,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
 
   // Panel now opens from the crystal click itself.
   // This avoids depending on App.jsx showStory flags while keeping Leva control.
-  const storyVisible = (!mobile && showStory && showInfoPanel && showAnalyzePanel && showCrystalInfo && showMobilePanels) && storyControls.showStoryControl && storyPanelOpen && mapProgress < 0.52;
+  const storyVisible = storyControls.showStoryControl && storyPanelOpen && mapProgress < 0.52;
   const labOpacity = THREE.MathUtils.clamp(visibleProgress, 0, 1);
   const rootRef = useRef(null);
 
@@ -3763,9 +3686,9 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
         overflow: "hidden",
         background: "#020b0a",
         opacity: labOpacity,
-        pointerEvents: (!mobile && showStory && showInfoPanel && showAnalyzePanel && showCrystalInfo && showMobilePanels) && mapProgress < 0.52 ? "auto" : "none",
+        pointerEvents: mapProgress < 0.52 ? "auto" : "none",
         isolation: "isolate",
-        touchAction: "pan-y",
+        touchAction: "none",
         zIndex: 1,
       }}
     >
@@ -3785,7 +3708,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
           width: "100%",
           height: "100%",
           pointerEvents: "auto",
-          touchAction: "pan-y",
+          touchAction: "none",
         }}
         camera={{
           position: [-0.3, 0.88, 4.6],
@@ -3793,8 +3716,8 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
           near: 0.1,
           far: 80,
         }}
-        frameloop={labOpacity > 0.035 && mapProgress < 0.46 ? "always" : "demand"}
-        performance={{ min: mobile ? 0.32 : 0.42 }}
+        frameloop={labOpacity > 0.025 && mapProgress < 0.62 ? "always" : "demand"}
+        performance={{ min: mobile ? 0.30 : 0.42 }}
         gl={{
           antialias: false,
           stencil: false,
@@ -3808,9 +3731,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
           <RendererSettings exposure={exposure} />
           <SceneWarmup enabled={visibleProgress > 0.02} />
 
-          <ambientLight intensity={0.58} />
-        <ColumnNoTextureFallbackPass />
-        <SceneContent
+          <SceneContent
             fogNear={fogNear}
             fogFar={fogFar}
             activeMode={activeMode}
@@ -3851,7 +3772,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
 
       {storyVisible && <StoryOverlay activeMode={activeMode} modePulseKey={modePulseKey} onAnalyze={handleCrystalModeChange} />}
 
-      {(!mobile && showStory && showInfoPanel && showAnalyzePanel && showCrystalInfo && showMobilePanels) && scrollProgress > 0.035 && scrollProgress < 0.70 && mapProgress < 0.22 && (
+      {scrollProgress > 0.035 && scrollProgress < 0.70 && mapProgress < 0.22 && (
         <div
           className="crystalAnalyzePrompt"
           style={{
@@ -3885,7 +3806,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
         </div>
       )}
 
-      { showLabel && (
+      {showLabel && (
       <div
         className="cisternLabLabel"
         style={{
@@ -3928,5 +3849,4 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
 }
 
 useGLTF.preload(`${MODEL_BASE}/hero_crystal.glb`);
-useGLTF.preload(PORTAL_ARCH_PATH)
-;
+useGLTF.preload(PORTAL_ARCH_PATH);
