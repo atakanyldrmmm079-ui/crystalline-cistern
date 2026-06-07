@@ -4338,3 +4338,10 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
 /* V100 RUNTIME BLACK SCREEN FIX                                               */
 /* -------------------------------------------------------------------------- */
 /* Fixes ReferenceError from stale allowCrystalInfoPanels variable. */
+
+
+/* -------------------------------------------------------------------------- */
+/* V101 REMOVE CRYSTAL FLAG SCOPE ERROR                                        */
+/* -------------------------------------------------------------------------- */
+/* Removes crystalInfoEnabled runtime variable references.
+   Desktop panel is restored; mobile internal crystal panel is gated inside SceneLab with !mobile. */
