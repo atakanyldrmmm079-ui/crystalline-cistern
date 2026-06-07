@@ -255,15 +255,7 @@ const CRITICAL_SCENELAB_ASSETS = [
   "/icons/cisterns/fildami.png",
   "/icons/cisterns/gulhane.png",
   "/icons/cisterns/serefiye.png",
-
-  "/textures/cables/cable_diffuse.jpg",
-  "/textures/cables/cable_normal.jpg",
-  "/textures/columns/column_diffuse.jpg",
-  "/textures/columns/column_normal.jpg",
-  "/textures/pedestal/pedestal_diffuse.jpg",
-  "/textures/pedestal/pedestal_normal.jpg",
-  "/textures/rocks/rock_diffuse.jpg",
-  "/textures/rocks/rock_normal.jpg",];
+];
 
 function useCriticalSceneAssets() {
   const [ready, setReady] = useState(false);
@@ -281,18 +273,6 @@ function useCriticalSceneAssets() {
       return link;
     });
 
-
-    const prefetchLinks = CRITICAL_SCENELAB_ASSETS
-      .filter((href) => /\.(png|jpg|jpeg|webp|glb)$/i.test(href))
-      .map((href) => {
-        const link = document.createElement("link");
-        link.rel = "prefetch";
-        link.href = href;
-        if (href.endsWith(".glb")) link.as = "fetch";
-        document.head.appendChild(link);
-        return link;
-      });
-
     const imagePromises = CRITICAL_SCENELAB_ASSETS
       .filter((src) => /\.(png|jpg|jpeg|webp)$/i.test(src))
       .map(
@@ -300,14 +280,7 @@ function useCriticalSceneAssets() {
           new Promise((resolve) => {
             const img = new Image();
             img.decoding = "async";
-            img.onload = async () => {
-              try {
-                await img.decode?.();
-              } catch {
-                // decode may fail on some browsers even after load
-              }
-              resolve();
-            };
+            img.onload = resolve;
             img.onerror = resolve;
             img.src = src;
           })
@@ -321,7 +294,7 @@ function useCriticalSceneAssets() {
           .catch(() => null)
       );
 
-    const timeout = new Promise((resolve) => window.setTimeout(resolve, 6200));
+    const timeout = new Promise((resolve) => window.setTimeout(resolve, 4200));
 
     Promise.race([
       Promise.allSettled([...imagePromises, ...fetchPromises]),
@@ -3645,14 +3618,6 @@ export default function App() {
     const preloadUrls = [
       "/model/hero_crystal.glb",
       "/model/portal_arch.glb",
-      "/textures/columns/column_diffuse.jpg",
-      "/textures/columns/column_normal.jpg",
-      "/textures/pedestal/pedestal_diffuse.jpg",
-      "/textures/pedestal/pedestal_normal.jpg",
-      "/textures/rocks/rock_diffuse.jpg",
-      "/textures/rocks/rock_normal.jpg",
-      "/textures/cables/cable_diffuse.jpg",
-      "/textures/cables/cable_normal.jpg",
     ];
 
     preloadUrls.forEach((url) => {
