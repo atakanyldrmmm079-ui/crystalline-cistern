@@ -4040,3 +4040,108 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
     overscroll-behavior: auto !important;
   }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V93 MOBILE SAFE: CRYSTAL ANALYZE PANEL OFF, CANVAS SAFE                     */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .site.isMobileLayout .cisternSceneHost,
+  .site.isMobileLayout .cisternSceneHost canvas {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .site.isMobileLayout .cisternSceneHost {
+    pointer-events: none !important;
+    touch-action: pan-y !important;
+  }
+
+  .site.isMobileLayout .cisternSceneHost canvas {
+    pointer-events: none !important;
+    touch-action: pan-y !important;
+  }
+
+  /* Do not show ACT story on final map; map mission panel stays alone. */
+  .site.isMobileLayout.act-map .gsapSafeStory,
+  .site.isMobileLayout.act-map .cinematicStoryLayer.gsapSafeStory {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  .site.isMobileLayout.act-map .mapMissionOverlay,
+  .site.isMobileLayout.act-map .mapMissionOverlay.alwaysVisible,
+  .site.isMobileLayout.act-map .mapMissionOverlay.persistent {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 0.94 !important;
+    z-index: 9070 !important;
+  }
+
+  /* Mobile visual polish: stronger story glow, smaller safe card. */
+  .site.isMobileLayout:not(.act-map) .gsapSafeStory,
+  .site.isMobileLayout:not(.act-map) .cinematicStoryLayer.gsapSafeStory {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: calc(50px + env(safe-area-inset-bottom, 0px)) !important;
+    max-width: calc(100vw - 24px) !important;
+    z-index: 9060 !important;
+  }
+
+  .site.isMobileLayout:not(.act-map) .gsapSafeStoryCard,
+  .site.isMobileLayout:not(.act-map) .cinematicStoryCard.gsapSafeStoryCard {
+    padding: 13px 14px 15px !important;
+    border-left: 1px solid rgba(156, 255, 242, 0.32) !important;
+    border-radius: 0 16px 16px 0 !important;
+    background:
+      linear-gradient(90deg, rgba(2, 7, 8, 0.66), rgba(2, 7, 8, 0.34) 68%, rgba(2, 7, 8, 0.08)),
+      radial-gradient(circle at 0% 0%, rgba(116, 255, 244, 0.14), transparent 54%) !important;
+    box-shadow:
+      0 18px 52px rgba(0, 0, 0, 0.30),
+      0 0 26px rgba(127, 255, 238, 0.06) !important;
+    backdrop-filter: blur(5px) !important;
+    -webkit-backdrop-filter: blur(5px) !important;
+  }
+
+  .site.isMobileLayout:not(.act-map) .gsapSafeStory .cinematicStoryTitle {
+    font-size: clamp(20px, 6.4vw, 28px) !important;
+    line-height: 1.04 !important;
+    letter-spacing: -0.055em !important;
+  }
+
+  .site.isMobileLayout .gsapSafeStory .storyChar.isStrong {
+    color: rgba(248,255,253,0.98) !important;
+    text-shadow:
+      0 0 10px rgba(150,255,242,0.42),
+      0 0 24px rgba(150,255,242,0.24),
+      0 3px 15px rgba(0,0,0,0.74) !important;
+  }
+
+  .site.isMobileLayout .gsapSafeStory .storyChar.isMuted {
+    color: rgba(196, 220, 215, 0.54) !important;
+  }
+
+  /* Add a subtle mobile cinematic wash without expensive blur overlays. */
+  .site.isMobileLayout .viewport::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    background:
+      radial-gradient(circle at 50% 46%, rgba(96,255,235,0.045), transparent 38%),
+      linear-gradient(180deg, rgba(0,0,0,0.12), transparent 26%, rgba(0,0,0,0.24));
+  }
+
+  .site.isMobileLayout .mapRevealLayer,
+  .site.isMobileLayout .mapLibreCrystalStage,
+  .site.isMobileLayout .maplibregl-map,
+  .site.isMobileLayout .maplibregl-canvas-container,
+  .site.isMobileLayout .maplibregl-canvas {
+    touch-action: pan-y !important;
+    overscroll-behavior: auto !important;
+  }
+}
