@@ -244,76 +244,6 @@ function useIsMobileViewport() {
 
 
 
-const CRITICAL_SCENELAB_ASSETS = [
-  "/model/hero_crystal.glb",
-  "/model/crystal_01.glb",
-  "/model/crystal_02.glb",
-  "/model/crystal_03.glb",
-  "/model/crystal_04.glb",
-  "/icons/cisterns/basilica.png",
-  "/icons/cisterns/binbirdirek.png",
-  "/icons/cisterns/fildami.png",
-  "/icons/cisterns/gulhane.png",
-  "/icons/cisterns/serefiye.png",
-];
-
-function useCriticalSceneAssets() {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const preloadLinks = CRITICAL_SCENELAB_ASSETS.map((href) => {
-      const link = document.createElement("link");
-      link.rel = "preload";
-      link.href = href;
-      link.as = href.endsWith(".glb") ? "fetch" : "image";
-      if (href.endsWith(".glb")) link.crossOrigin = "anonymous";
-      document.head.appendChild(link);
-      return link;
-    });
-
-    const imagePromises = CRITICAL_SCENELAB_ASSETS
-      .filter((src) => /\.(png|jpg|jpeg|webp)$/i.test(src))
-      .map(
-        (src) =>
-          new Promise((resolve) => {
-            const img = new Image();
-            img.decoding = "async";
-            img.onload = resolve;
-            img.onerror = resolve;
-            img.src = src;
-          })
-      );
-
-    const fetchPromises = CRITICAL_SCENELAB_ASSETS
-      .filter((src) => /\.glb$/i.test(src))
-      .map((src) =>
-        fetch(src, { cache: "force-cache" })
-          .then((res) => res.arrayBuffer())
-          .catch(() => null)
-      );
-
-    const timeout = new Promise((resolve) => window.setTimeout(resolve, 4200));
-
-    Promise.race([
-      Promise.allSettled([...imagePromises, ...fetchPromises]),
-      timeout,
-    ]).then(() => {
-      if (!cancelled) setReady(true);
-    });
-
-    return () => {
-      cancelled = true;
-      // Keep preload links in the document head so browser cache hints remain available.
-      // They are tiny DOM nodes and safer than removing hints before SceneLab mounts.
-    };
-  }, []);
-
-  return ready;
-}
-
-
 function useIsCompactViewport() {
   const [isCompact, setIsCompact] = useState(() =>
     typeof window !== "undefined"
@@ -3440,7 +3370,7 @@ export default function App() {
   const scroll = useScrollProgress();
   const isMobileViewport = useIsMobileViewport();
   const isCompactViewport = useIsCompactViewport();
-  const criticalSceneAssetsReady = useCriticalSceneAssets();
+  const criticalSceneAssetsReady = true;
   const siteRef = useRef(null);
 
   const designMode = false;
@@ -3618,6 +3548,14 @@ export default function App() {
     const preloadUrls = [
       "/model/hero_crystal.glb",
       "/model/portal_arch.glb",
+      "/textures/columns/column_diffuse.jpg",
+      "/textures/columns/column_normal.jpg",
+      "/textures/pedestal/pedestal_diffuse.jpg",
+      "/textures/pedestal/pedestal_normal.jpg",
+      "/textures/rocks/rock_diffuse.jpg",
+      "/textures/rocks/rock_normal.jpg",
+      "/textures/cables/cable_diffuse.jpg",
+      "/textures/cables/cable_normal.jpg",
     ];
 
     preloadUrls.forEach((url) => {
@@ -3743,15 +3681,7 @@ return (
             </Canvas>
           </div>
         )}
-
-        
-        {preloaderDone && !criticalSceneAssetsReady && scroll > design.cisternEnterStart - 0.05 && mapProgress < 0.2 && (
-          <div className="sceneWarmupVeil">
-            <span>stabilizing crystal textures</span>
-          </div>
-        )}
-
-        {shouldMountCistern && (
+{shouldMountCistern && (
           <div
             className="cisternSceneHost cisternPointerOwner"
             style={{
