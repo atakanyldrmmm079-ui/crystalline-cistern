@@ -1,15 +1,15 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import SplitType from "split-type";
 import { Canvas, useFrame, useThree, useLoader } from "@react-three/fiber";
 import { Environment, useGLTF, RoundedBox, MeshTransmissionMaterial, Html, useProgress } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
-import { Leva, useControls, folder } from "leva";
+import { useControls, folder } from "leva";
 import * as THREE from "three";
 import "./App.css";
 import MapLibreCrystalMap from "./components/MapLibreCrystalMap";
 import CisternSceneLab from "./components/cinematic/CisternSceneLab";
+import PresentationAudioButton from "./components/PresentationAudioButton";
 
 /*
   GEREKLİ DOSYALAR:
@@ -2566,195 +2566,156 @@ function getBeatPlainText(beat) {
     .join(" ");
 }
 
-function CinematicStoryLayer({ scroll, design }) {
-  const [hovering, setHovering] = useState(false);
-  const cardRef = useRef(null);
 
-  const beats = useMemo(() => {
-    // IntroMinimalInterface already carries the opening "run out of water" sentence.
-    // The ACT layer starts after that, so intro text and ACT text never overlap.
-    return getCinematicStoryBeats(design).filter((beat) => beat.id !== "istanbul-2556");
-  }, [
-    design.storyDescentStart,
-    design.storyDescentEnd,
-    design.storyReactionStart,
-    design.storyReactionEnd,
-    design.storyCoreStart,
-    design.storyCoreEnd,
-    design.storyPortalStart,
-    design.storyPortalEnd,
-    design.storyMapStart,
-    design.storyMapEnd,
-  ]);
+function splitStoryTextToChars(text) {
+  const words = String(text || "").split(/(\s+)/);
+  let charKey = 0;
 
-  const fadeSize = Math.max(0.052, design.storyFadeSize ?? 0.052);
+  return words.map((word, wordIndex) => {
+    if (/^\s+$/.test(word)) {
+      return <span key={`space-${wordIndex}`} className="storySpace">{word}</span>;
+    }
 
-  const active = useMemo(() => {
-    const candidates = beats
-      .map((beat) => {
-        const enter = smoother01(range(scroll, beat.start - fadeSize * 0.72, beat.start + fadeSize * 0.92));
-        const exit = 1 - smoother01(range(scroll, beat.end - fadeSize * 0.92, beat.end + fadeSize * 0.72));
-        const opacity = clamp01(enter * exit);
-        const local = range(scroll, beat.start, beat.end);
+    return (
+      <span key={`word-${wordIndex}`} className="storyWord">
+        {word.split("").map((char) => (
+          <span key={`char-${charKey++}`} className="storyChar">
+            {char}
+          </span>
+        ))}
+      </span>
+    );
+  });
+}
 
-        return {
-          beat,
-          opacity,
-          local,
-          entering: 1 - enter,
-          leaving: 1 - exit,
-        };
-      })
-      .filter((item) => item.opacity > 0.018)
-      .sort((a, b) => b.opacity - a.opacity);
+function getActiveGsapStoryBeat(scroll, design) {
+  const beats = getCinematicStoryBeats(design).filter((beat) => beat.id !== "istanbul-2556");
+  const fade = Math.max(0.060, Number(design.storyFadeSize ?? 0.082));
 
-    return candidates[0] || null;
-  }, [beats, fadeSize, scroll]);
+  const candidates = beats
+    .map((beat) => {
+      const start = Number(beat.start ?? 0);
+      const end = Number(beat.end ?? start + 0.13);
+      const enter = smoother01(range(scroll, start - fade * 0.72, start + fade * 0.88));
+      const exit = 1 - smoother01(range(scroll, end - fade * 0.88, end + fade * 0.72));
+      const opacity = clamp01(enter * exit);
+
+      return {
+        beat,
+        opacity,
+        entering: 1 - enter,
+        leaving: 1 - exit,
+        score: opacity,
+      };
+    })
+    .filter((item) => item.opacity > 0.018)
+    .sort((a, b) => b.score - a.score);
+
+  return candidates[0] || null;
+}
+
+function CinematicStoryLayer({ scroll, design, current, fullNetwork }) {
+  const active = useMemo(() => getActiveGsapStoryBeat(scroll, design), [scroll, design]);
+  const panelRef = useRef(null);
 
   useGSAP(
     () => {
-      if (!cardRef.current || !active?.beat) return;
+      if (!panelRef.current || !active?.beat) return;
 
-      const card = cardRef.current;
-      const text = card.querySelector(".cinematicStoryText");
-      const kicker = card.querySelector(".cinematicStoryKicker");
-      const lines = card.querySelectorAll(".cinematicStoryLine");
-      let split;
+      const chars = panelRef.current.querySelectorAll(".storyChar");
+      const lines = panelRef.current.querySelectorAll(".cinematicStoryLine, .cinematicStoryKicker");
 
-      gsap.killTweensOf(card);
-      gsap.killTweensOf([text, kicker, ...lines]);
-
-      if (text) {
-        split = new SplitType(text, { types: "words,chars" });
-      }
+      gsap.killTweensOf(panelRef.current);
+      gsap.killTweensOf(chars);
+      gsap.killTweensOf(lines);
 
       gsap.fromTo(
-        card,
+        panelRef.current,
+        { autoAlpha: 0, y: 18, x: active.beat.align === "right" ? 18 : -18, filter: "blur(8px)" },
+        { autoAlpha: 1, y: 0, x: 0, filter: "blur(0px)", duration: 0.58, ease: "power3.out" }
+      );
+
+      gsap.fromTo(
+        chars,
+        { yPercent: 78, autoAlpha: 0, filter: "blur(7px)" },
         {
-          autoAlpha: 0,
-          y: 22,
-          x: active.beat.align === "right" ? 18 : -18,
-          filter: "blur(9px)",
-        },
-        {
+          yPercent: 0,
           autoAlpha: 1,
-          y: 0,
-          x: 0,
           filter: "blur(0px)",
-          duration: 0.72,
+          duration: 0.62,
           ease: "power3.out",
+          stagger: {
+            each: 0.009,
+            from: active.beat.align === "right" ? "end" : "start",
+          },
         }
       );
 
-      if (kicker) {
-        gsap.fromTo(
-          kicker,
-          { autoAlpha: 0, y: 12, filter: "blur(4px)" },
-          { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.48, ease: "power2.out", delay: 0.03 }
-        );
-      }
-
-      if (split?.chars?.length) {
-        gsap.fromTo(
-          split.chars,
-          {
-            yPercent: 78,
-            autoAlpha: 0,
-            filter: "blur(9px)",
-          },
-          {
-            yPercent: 0,
-            autoAlpha: 1,
-            filter: "blur(0px)",
-            duration: 0.74,
-            ease: "power3.out",
-            stagger: 0.009,
-            delay: 0.06,
-          }
-        );
-      }
-
-      if (lines.length) {
-        gsap.fromTo(
-          lines,
-          { autoAlpha: 0.52, y: 15, filter: "blur(5px)" },
-          {
-            autoAlpha: 1,
-            y: 0,
-            filter: "blur(0px)",
-            duration: 0.58,
-            ease: "power2.out",
-            stagger: 0.06,
-            delay: 0.10,
-          }
-        );
-      }
+      gsap.fromTo(
+        lines,
+        { y: 14, autoAlpha: 0, filter: "blur(4px)" },
+        { y: 0, autoAlpha: 1, filter: "blur(0px)", duration: 0.44, ease: "power2.out", stagger: 0.045, delay: 0.05 }
+      );
 
       return () => {
-        if (split) split.revert();
+        gsap.killTweensOf(panelRef.current);
+        gsap.killTweensOf(chars);
+        gsap.killTweensOf(lines);
       };
     },
-    { dependencies: [active?.beat?.id], scope: cardRef }
+    { dependencies: [active?.beat?.id], scope: panelRef }
   );
 
-  if (!design.storyEnabled || !active) return null;
+  if (!active) return null;
 
-  const { beat, opacity, local, entering, leaving } = active;
-  const alignRight = beat.align === "right";
-  const driftX = alignRight ? entering * 14 - leaving * 8 : -entering * 14 + leaving * 8;
-  const driftY = entering * 10 - leaving * 10;
-  const softBlur = (entering + leaving) * 1.35;
-  const storyText = getBeatPlainText(beat);
-
-  function handleMove(event) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-    event.currentTarget.style.setProperty("--storyHoverX", `${x}%`);
-    event.currentTarget.style.setProperty("--storyHoverY", `${y}%`);
-  }
+  const { beat, opacity, entering, leaving } = active;
+  const finalOpacity = clamp01(opacity * (design.storyOpacity || 0.94));
+  const y = entering * 9 - leaving * 8;
+  const x = beat.align === "right" ? entering * 8 - leaving * 6 : -entering * 8 + leaving * 6;
+  const blur = (entering + leaving) * 1.6;
+  const titleText = beat.lines
+    .map((line) => line.map((part) => (typeof part === "string" ? part : part.text)).join("").trim())
+    .join(" ");
 
   return (
     <div
-      className={`cinematicStoryLayer gsapActLayer ${alignRight ? "right" : "left"}`}
+      className={`cinematicStoryLayer gsapSafeStory ${beat.align === "right" ? "right" : "left"}`}
       style={{
-        "--storyX": `${design.storyX}vw`,
-        "--storyY": `${design.storyY}vh`,
-        "--storyOpacity": opacity * design.storyOpacity,
-        "--storyMaxWidth": `${design.storyMaxWidth}px`,
-        "--storyTitleSize": `${design.storyTitleSize}px`,
-        "--storyKickerSize": `${design.storyKickerSize}px`,
-        "--storyGlow": design.storyGlow,
-        "--storyBlur": `${Math.max(0, design.storyBlur + softBlur)}px`,
-        "--storyAccent": design.storyAccent,
-        "--storyColor": design.storyColor,
-        "--storyMuted": design.storyMutedColor,
-        "--storyGlitch": hovering ? design.storyHoverGlitch : design.storyGlitch,
-        transform: `translate3d(${driftX}px, ${Math.sin(local * Math.PI) * -8 + driftY}px, 0)`,
+        "--storyX": `${design.storyX || 4.2}vw`,
+        "--storyY": `${design.storyY || 34}vh`,
+        "--storyMaxWidth": `${design.storyMaxWidth || 880}px`,
+        "--storyAccent": design.storyAccent || "#9ffff3",
+        "--storyColor": design.storyColor || "rgba(226, 242, 238, 0.82)",
+        "--storyTitleSize": `${Number(design.storyTitleSize || 40)}px`,
+        "--storyKickerSize": `${design.storyKickerSize || 10}px`,
+        opacity: finalOpacity,
+        transform: `translate3d(${x}px, ${y}px, 0)`,
+        filter: `blur(${blur}px)`,
+        pointerEvents: "none",
       }}
     >
-      <div
-        ref={cardRef}
-        className={`cinematicStoryCard gsapActCard ${hovering ? "is-hovering" : ""}`}
-        onPointerEnter={() => setHovering(true)}
-        onPointerLeave={() => setHovering(false)}
-        onPointerMove={handleMove}
-      >
-        <div className="cinematicStoryKicker" data-text={beat.eyebrow}>
-          {beat.eyebrow}
+      <aside ref={panelRef} className="cinematicStoryCard gsapSafeStoryCard">
+        <div className="cinematicStoryKicker">{beat.eyebrow}</div>
+
+        <div className="cinematicStoryText cinematicStoryTitle">
+          {splitStoryTextToChars(titleText)}
         </div>
 
-        <div className="cinematicStoryText" data-text={storyText}>
-          {beat.lines.map((line, index) => (
-            <div className="cinematicStoryLine" key={`${beat.id}-${index}`}>
-              <RichStoryLine tokens={line} />
-            </div>
+        <div className="cinematicStoryLines">
+          {beat.lines.map((line, lineIndex) => (
+            <p className="cinematicStoryLine" key={`${beat.id}-${lineIndex}`}>
+              {line.map((part, partIndex) => {
+                if (typeof part === "string") return <span key={partIndex}>{part}</span>;
+                return <strong key={partIndex}>{part.text}</strong>;
+              })}
+            </p>
           ))}
         </div>
-      </div>
+      </aside>
     </div>
   );
 }
+
 
 function CinematicPreloader({ design, onDone }) {
   const { progress } = useProgress();
@@ -2963,45 +2924,41 @@ function StoryOverlay({ scroll, current, fullNetwork }) {
       if (!panelRef.current) return;
 
       const title = panelRef.current.querySelector(".storyTitle");
-      let split;
+      const content = panelRef.current.querySelectorAll(
+        ".storyLead, .storyBody, .storyDataLine, .storyMeta, .storyMeta span, .storyMeta i"
+      );
 
-      if (title) {
-        split = new SplitType(title, { types: "words,chars" });
-      }
+      gsap.killTweensOf(panelRef.current);
+      gsap.killTweensOf(title);
+      gsap.killTweensOf(content);
 
       gsap.fromTo(
         panelRef.current,
-        { autoAlpha: 0, x: -26 },
-        { autoAlpha: panelOpacity, x: 0, duration: 0.52, ease: "power3.out" }
+        { autoAlpha: 0, x: -18, y: 10, filter: "blur(6px)" },
+        { autoAlpha: panelOpacity, x: 0, y: 0, filter: "blur(0px)", duration: 0.48, ease: "power3.out" }
       );
 
-      if (split?.chars?.length) {
+      if (title) {
         gsap.fromTo(
-          split.chars,
-          { yPercent: 80, autoAlpha: 0, filter: "blur(8px)" },
-          {
-            yPercent: 0,
-            autoAlpha: 1,
-            filter: "blur(0px)",
-            duration: 0.62,
-            ease: "power3.out",
-            stagger: 0.012,
-          },
-          0
+          title,
+          { autoAlpha: 0, y: 12, filter: "blur(5px)" },
+          { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.52, ease: "power3.out", delay: 0.04 }
         );
       }
 
       gsap.fromTo(
-        panelRef.current.querySelectorAll(".storyLead, .storyBody, .storyDataLine"),
-        { y: 16, autoAlpha: 0 },
-        { y: 0, autoAlpha: 1, duration: 0.44, ease: "power2.out", stagger: 0.06, delay: 0.08 }
+        content,
+        { autoAlpha: 0, y: 10, filter: "blur(3px)" },
+        { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.36, ease: "power2.out", stagger: 0.035, delay: 0.08 }
       );
 
       return () => {
-        if (split) split.revert();
+        gsap.killTweensOf(panelRef.current);
+        gsap.killTweensOf(title);
+        gsap.killTweensOf(content);
       };
     },
-    { dependencies: [act.id], scope: panelRef }
+    { dependencies: [act.id, panelOpacity], scope: panelRef }
   );
 
   return (
@@ -3315,7 +3272,7 @@ export default function App() {
       storyY: { value: 34, min: 5, max: 80, step: 0.5 },
       storyMaxWidth: { value: 980, min: 360, max: 1400, step: 10 },
       storyOpacity: { value: 1, min: 0, max: 1, step: 0.01 },
-      storyTitleSize: { value: 68, min: 18, max: 92, step: 1 },
+      storyTitleSize: { value: 40, min: 30, max: 52, step: 1 },
       storyKickerSize: { value: 11, min: 7, max: 18, step: 1 },
       storyFadeSize: { value: 0.052, min: 0.008, max: 0.12, step: 0.002 },
       storyDrift: { value: 20, min: 0, max: 80, step: 1 },
@@ -3400,16 +3357,7 @@ export default function App() {
     });
   }, []);
 
-  useEffect(() => {
-    function onKeyDown(event) {
-      if (event.key.toLowerCase() === "d") {
-        setDesignMode((prev) => !prev);
-      }
-    }
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
 
   function handleMouseMove(event) {
     if (siteRef.current) {
@@ -3487,6 +3435,8 @@ export default function App() {
           }}
         />
       )}
+
+      <PresentationAudioButton />
 
       <section className="viewport" style={{ position: "fixed", inset: 0, overflow: "hidden", pointerEvents: "auto" }}>
         {shouldRenderIntro && (
