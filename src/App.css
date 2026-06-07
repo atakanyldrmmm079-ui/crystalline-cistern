@@ -3869,3 +3869,96 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
     bottom: 12px !important;
   }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V88 MOBILE TRUE FIX: DISABLE INTERNAL SCENELAB STORY PANEL                  */
+/* -------------------------------------------------------------------------- */
+
+/* App now passes showStory={false} to CisternSceneLab on mobile.
+   These CSS rules are a hard backup for any remaining internal overlay. */
+@media (max-width: 768px) {
+  .site.isMobileLayout .cisternSceneHost .labStoryOverlay,
+  .site.isMobileLayout .cisternSceneHost .labStoryPanel,
+  .site.isMobileLayout .cisternSceneHost .sceneStoryOverlay,
+  .site.isMobileLayout .cisternSceneHost .sceneStoryPanel,
+  .site.isMobileLayout .cisternSceneHost .analyzePanel,
+  .site.isMobileLayout .cisternSceneHost .analysisPanel,
+  .site.isMobileLayout .cisternSceneHost .crystalAnalyzePanel,
+  .site.isMobileLayout .cisternSceneHost .crystalStoryPanel,
+  .site.isMobileLayout .cisternSceneHost .crystalReadout,
+  .site.isMobileLayout .cisternSceneHost .nodeReadout,
+  .site.isMobileLayout .cisternSceneHost .labReadout,
+  .site.isMobileLayout .cisternSceneHost [data-story],
+  .site.isMobileLayout .cisternSceneHost [data-panel],
+  .site.isMobileLayout .cisternSceneHost [data-readout] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* Important: final map must not show ACT story over mission panel. */
+  .site.isMobileLayout.act-map .gsapSafeStory,
+  .site.isMobileLayout.act-map .cinematicStoryLayer,
+  .site.isMobileLayout.act-map .cinematicStoryCard {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* Make the remaining ACT card smaller and not centered over lab UI. */
+  .site.isMobileLayout:not(.act-map) .gsapSafeStory,
+  .site.isMobileLayout:not(.act-map) .cinematicStoryLayer.gsapSafeStory {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: calc(46px + env(safe-area-inset-bottom, 0px)) !important;
+    max-width: calc(100vw - 24px) !important;
+    z-index: 9060 !important;
+  }
+
+  .site.isMobileLayout:not(.act-map) .gsapSafeStoryCard,
+  .site.isMobileLayout:not(.act-map) .cinematicStoryCard.gsapSafeStoryCard {
+    max-height: 28vh !important;
+    padding: 11px 13px 13px !important;
+    background:
+      linear-gradient(90deg, rgba(2, 6, 7, 0.52), rgba(2, 6, 7, 0.25) 72%, rgba(2, 6, 7, 0.04)) !important;
+  }
+
+  .site.isMobileLayout:not(.act-map) .gsapSafeStory .cinematicStoryTitle {
+    font-size: clamp(18px, 5.8vw, 25px) !important;
+    line-height: 1.02 !important;
+  }
+
+  .site.isMobileLayout:not(.act-map) .gsapSafeStory .cinematicStoryKicker {
+    font-size: 6px !important;
+    letter-spacing: 0.16em !important;
+    margin-bottom: 6px !important;
+  }
+
+  /* Final map: mission panel only, compact. */
+  .site.isMobileLayout.act-map .mapMissionOverlay,
+  .site.isMobileLayout.act-map .mapMissionOverlay.alwaysVisible,
+  .site.isMobileLayout.act-map .mapMissionOverlay.persistent {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 0.94 !important;
+    left: 10px !important;
+    right: 10px !important;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    width: auto !important;
+    max-width: none !important;
+    z-index: 9070 !important;
+  }
+
+  /* User must be able to scroll back up from map. */
+  .site.isMobileLayout .mapRevealLayer,
+  .site.isMobileLayout .mapLibreCrystalStage,
+  .site.isMobileLayout .maplibregl-map,
+  .site.isMobileLayout .maplibregl-canvas,
+  .site.isMobileLayout .maplibregl-canvas-container {
+    touch-action: pan-y !important;
+    overscroll-behavior: auto !important;
+  }
+}
