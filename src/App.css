@@ -4916,3 +4916,190 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
     0 0 20px rgba(150,255,242,0.15),
     0 3px 13px rgba(0,0,0,0.72) !important;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V113 COMPACT LAPTOP: KEEP ACT STORY VISIBLE                                 */
+/* -------------------------------------------------------------------------- */
+/* Small desktop/laptop screens must still show the ACT/hikaye layer.
+   Crystal analyze remains visible; ACT becomes a smaller secondary card. */
+
+.site.isCompactLayout:not(.isMobileLayout) .gsapSafeStory,
+.site.isCompactLayout:not(.isMobileLayout) .cinematicStoryLayer.gsapSafeStory,
+.site.isCompactLayout:not(.isMobileLayout) .cinematicStoryCard.gsapSafeStoryCard {
+  display: block !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+}
+
+/* Compact positioning: keep ACT away from the analyze panel. */
+.site.isCompactLayout:not(.isMobileLayout) .gsapSafeStory,
+.site.isCompactLayout:not(.isMobileLayout) .cinematicStoryLayer.gsapSafeStory {
+  width: min(380px, 31vw) !important;
+  max-width: min(380px, 31vw) !important;
+  left: auto !important;
+  right: 22px !important;
+  top: auto !important;
+  bottom: 4.5vh !important;
+  opacity: min(var(--storyOpacityNow, 1), 0.76) !important;
+  z-index: 9065 !important;
+}
+
+.site.isCompactLayout:not(.isMobileLayout) .gsapSafeStoryCard,
+.site.isCompactLayout:not(.isMobileLayout) .cinematicStoryCard.gsapSafeStoryCard {
+  padding: 11px 13px 13px !important;
+  min-height: 0 !important;
+  max-height: 32vh !important;
+  overflow: hidden !important;
+  background:
+    linear-gradient(90deg, rgba(3, 10, 11, 0.54), rgba(3, 10, 11, 0.24) 72%, rgba(3, 10, 11, 0.06)) !important;
+  border-color: rgba(159, 255, 243, 0.20) !important;
+  box-shadow: 0 12px 34px rgba(0,0,0,0.24) !important;
+}
+
+.site.isCompactLayout:not(.isMobileLayout) .gsapSafeStory .cinematicStoryTitle {
+  font-size: clamp(18px, 1.62vw, 25px) !important;
+  line-height: 1.02 !important;
+  letter-spacing: -0.045em !important;
+}
+
+.site.isCompactLayout:not(.isMobileLayout) .gsapSafeStory .cinematicStoryKicker {
+  font-size: 6px !important;
+  letter-spacing: 0.15em !important;
+  margin-bottom: 6px !important;
+}
+
+/* Even on very short laptop screens, don't delete story.
+   Make it smaller instead. */
+@media (max-height: 630px) and (min-width: 901px) {
+  .site.isCompactLayout:not(.isMobileLayout) .gsapSafeStory,
+  .site.isCompactLayout:not(.isMobileLayout) .cinematicStoryLayer.gsapSafeStory {
+    display: block !important;
+    visibility: visible !important;
+    width: min(330px, 29vw) !important;
+    max-width: min(330px, 29vw) !important;
+    right: 16px !important;
+    bottom: 3.2vh !important;
+    opacity: min(var(--storyOpacityNow, 1), 0.66) !important;
+  }
+
+  .site.isCompactLayout:not(.isMobileLayout) .gsapSafeStoryCard {
+    padding: 9px 11px 11px !important;
+    max-height: 26vh !important;
+  }
+
+  .site.isCompactLayout:not(.isMobileLayout) .gsapSafeStory .cinematicStoryTitle {
+    font-size: clamp(15px, 1.45vw, 21px) !important;
+    line-height: 1.01 !important;
+  }
+
+  .site.isCompactLayout:not(.isMobileLayout) .gsapSafeStory .cinematicStoryKicker {
+    font-size: 5.5px !important;
+    margin-bottom: 5px !important;
+  }
+}
+
+/* Crystal analyze also stays visible; ACT is secondary, not replacement. */
+.site.isCompactLayout:not(.isMobileLayout) .cisternSceneHost [class*="Analyze" i],
+.site.isCompactLayout:not(.isMobileLayout) .cisternSceneHost [class*="InfoPanel" i],
+.site.isCompactLayout:not(.isMobileLayout) .cisternSceneHost [class*="StoryPanel" i],
+.site.isCompactLayout:not(.isMobileLayout) .cisternSceneHost [class*="Readout" i] {
+  display: block !important;
+  visibility: visible !important;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V114 V83 VISUAL RESTORE / KEEP ARCHITECTURE                                 */
+/* -------------------------------------------------------------------------- */
+/* Final visual reset: keep v104-v113 architecture/preload/compact fixes, but
+   restore SceneLab tone to the v83 dark foggy design look. */
+
+.viewport {
+  background:
+    radial-gradient(circle at 50% 43%, rgba(72, 180, 170, 0.030), transparent 34%),
+    radial-gradient(circle at 50% 86%, rgba(24, 92, 86, 0.035), transparent 48%),
+    #020b0a !important;
+}
+
+/* Kill over-bright visual boost filters from v106-v113. */
+.cisternSceneHost,
+.site.isCompactLayout:not(.isMobileLayout) .cisternSceneHost,
+.site.isMobileLayout .cisternSceneHost {
+  filter: none !important;
+}
+
+@media (min-width: 1367px) and (min-height: 761px) {
+  .cisternSceneHost {
+    filter: none !important;
+  }
+}
+
+.mapRevealLayer {
+  filter: none !important;
+}
+
+/* Restore darker cinematic panels close to v83; keep no expensive blur. */
+.gsapSafeStoryCard,
+.cinematicStoryCard {
+  background:
+    linear-gradient(90deg, rgba(2, 8, 9, 0.60), rgba(2, 8, 9, 0.30) 70%, rgba(2, 8, 9, 0.06)),
+    radial-gradient(circle at 0% 0%, rgba(127, 255, 238, 0.08), transparent 52%) !important;
+  border-color: rgba(159, 255, 243, 0.22) !important;
+  box-shadow:
+    0 18px 56px rgba(0,0,0,0.30),
+    0 0 20px rgba(127,255,238,0.040) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.mapMissionInner {
+  background:
+    linear-gradient(180deg, rgba(2, 8, 9, 0.90), rgba(1, 5, 6, 0.84)) !important;
+  border-color: rgba(159, 255, 243, 0.20) !important;
+  box-shadow: 0 16px 46px rgba(0,0,0,0.30) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* v83-like word glow: readable, not overblown. */
+.gsapSafeStory .storyChar.isStrong {
+  text-shadow:
+    0 0 9px rgba(150,255,242,0.34),
+    0 0 18px rgba(150,255,242,0.13),
+    0 3px 13px rgba(0,0,0,0.72) !important;
+}
+
+.gsapSafeStory .storyChar.isMuted {
+  color: rgba(190, 214, 209, 0.50) !important;
+}
+
+/* Keep compact laptop ACT visible but don't let it dominate. */
+.site.isCompactLayout:not(.isMobileLayout) .gsapSafeStory,
+.site.isCompactLayout:not(.isMobileLayout) .cinematicStoryLayer.gsapSafeStory {
+  display: block !important;
+  visibility: visible !important;
+  width: min(380px, 31vw) !important;
+  max-width: min(380px, 31vw) !important;
+  left: auto !important;
+  right: 22px !important;
+  top: auto !important;
+  bottom: 4.5vh !important;
+  opacity: min(var(--storyOpacityNow, 1), 0.76) !important;
+  z-index: 9065 !important;
+}
+
+.site.isCompactLayout:not(.isMobileLayout) .cisternSceneHost [class*="Analyze" i],
+.site.isCompactLayout:not(.isMobileLayout) .cisternSceneHost [class*="InfoPanel" i],
+.site.isCompactLayout:not(.isMobileLayout) .cisternSceneHost [class*="StoryPanel" i],
+.site.isCompactLayout:not(.isMobileLayout) .cisternSceneHost [class*="Readout" i] {
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Warmup veil should not visually replace SceneLab style. */
+.sceneWarmupVeil {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(127,255,238,0.035), transparent 34%),
+    rgba(2, 8, 9, 0.46) !important;
+}
