@@ -2759,7 +2759,7 @@ function MapMissionOverlay({ scroll, design, activatedNodes }) {
   const fullAt = design.mapMissionFull ?? 0.82;
 
   // Final map interface: fade in once, then stay visible permanently.
-  if (scroll < mapStart - 0.02) return null;
+  if (scroll < Math.max(mapStart - 0.005, (design.mapVisualStart ?? mapStart) - 0.005)) return null;
 
   const enter = smooth01(range(scroll, mapStart, fullAt));
   const opacity = scroll >= fullAt
@@ -3423,6 +3423,8 @@ export default function App() {
 
     "06_LIGHT_FOG_BLOOM": folder({
       background: "#020607",
+              touchAction: "pan-y",
+              overscrollBehavior: "auto",
       fogColor: "#020607",
       fogNear: { value: 5.1, min: 0.1, max: 15, step: 0.1 },
       fogFar: { value: 15.3, min: 1, max: 30, step: 0.1 },
@@ -3576,7 +3578,7 @@ export default function App() {
             zIndex: 10,
             opacity: cisternOpacity,
             pointerEvents: cisternInteractive ? "auto" : "none",
-            touchAction: "none",
+            touchAction: "pan-y",
             transition: "opacity 140ms linear",
           }}
         >
@@ -3611,6 +3613,8 @@ export default function App() {
               pointerEvents: mapInteractive ? "auto" : "none",
               transition: "opacity 70ms linear",
               background: "#020607",
+              touchAction: "pan-y",
+              overscrollBehavior: "auto",
             }}
           >
             <MapLibreCrystalMap
