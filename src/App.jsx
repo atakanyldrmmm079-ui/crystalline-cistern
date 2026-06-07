@@ -209,6 +209,10 @@ function smooth01(value) {
   return t * t * (3 - 2 * t);
 }
 
+function smoother01(value) {
+  return smooth01(smooth01(value));
+}
+
 function eachMaterial(material, callback) {
   if (Array.isArray(material)) material.forEach(callback);
   else if (material) callback(material);
@@ -2551,10 +2555,26 @@ function getBeatVisibility(scroll, beat, fadeSize) {
   return clamp01(enter * exit);
 }
 
+function getBeatPlainText(beat) {
+  return beat.lines
+    .map((line) =>
+      line
+        .map((part) => (typeof part === "string" ? part : part.text))
+        .join("")
+        .trim()
+    )
+    .join(" ");
+}
+
 function CinematicStoryLayer({ scroll, design }) {
   const [hovering, setHovering] = useState(false);
-  const containerRef = useRef(null);
-  const beats = useMemo(() => getCinematicStoryBeats(design), [
+  const cardRef = useRef(null);
+
+  const beats = useMemo(() => {
+    // IntroMinimalInterface already carries the opening "run out of water" sentence.
+    // The ACT layer starts after that, so intro text and ACT text never overlap.
+    return getCinematicStoryBeats(design).filter((beat) => beat.id !== "istanbul-2556");
+  }, [
     design.storyDescentStart,
     design.storyDescentEnd,
     design.storyReactionStart,
@@ -2567,17 +2587,124 @@ function CinematicStoryLayer({ scroll, design }) {
     design.storyMapEnd,
   ]);
 
-  const fadeSize = design.storyFadeSize ?? 0.035;
-  const active = beats
-    .map((beat) => ({ beat, opacity: getBeatVisibility(scroll, beat, fadeSize) }))
-    .sort((a, b) => b.opacity - a.opacity)[0];
+  const fadeSize = Math.max(0.052, design.storyFadeSize ?? 0.052);
 
-  if (!design.storyEnabled || !active || active.opacity <= 0.015) return null;
+  const active = useMemo(() => {
+    const candidates = beats
+      .map((beat) => {
+        const enter = smoother01(range(scroll, beat.start - fadeSize * 0.72, beat.start + fadeSize * 0.92));
+        const exit = 1 - smoother01(range(scroll, beat.end - fadeSize * 0.92, beat.end + fadeSize * 0.72));
+        const opacity = clamp01(enter * exit);
+        const local = range(scroll, beat.start, beat.end);
 
-  const { beat, opacity } = active;
-  const local = range(scroll, beat.start, beat.end);
-  const drift = (0.5 - local) * (design.storyDrift ?? 18);
+        return {
+          beat,
+          opacity,
+          local,
+          entering: 1 - enter,
+          leaving: 1 - exit,
+        };
+      })
+      .filter((item) => item.opacity > 0.018)
+      .sort((a, b) => b.opacity - a.opacity);
+
+    return candidates[0] || null;
+  }, [beats, fadeSize, scroll]);
+
+  useGSAP(
+    () => {
+      if (!cardRef.current || !active?.beat) return;
+
+      const card = cardRef.current;
+      const text = card.querySelector(".cinematicStoryText");
+      const kicker = card.querySelector(".cinematicStoryKicker");
+      const lines = card.querySelectorAll(".cinematicStoryLine");
+      let split;
+
+      gsap.killTweensOf(card);
+      gsap.killTweensOf([text, kicker, ...lines]);
+
+      if (text) {
+        split = new SplitType(text, { types: "words,chars" });
+      }
+
+      gsap.fromTo(
+        card,
+        {
+          autoAlpha: 0,
+          y: 22,
+          x: active.beat.align === "right" ? 18 : -18,
+          filter: "blur(9px)",
+        },
+        {
+          autoAlpha: 1,
+          y: 0,
+          x: 0,
+          filter: "blur(0px)",
+          duration: 0.72,
+          ease: "power3.out",
+        }
+      );
+
+      if (kicker) {
+        gsap.fromTo(
+          kicker,
+          { autoAlpha: 0, y: 12, filter: "blur(4px)" },
+          { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.48, ease: "power2.out", delay: 0.03 }
+        );
+      }
+
+      if (split?.chars?.length) {
+        gsap.fromTo(
+          split.chars,
+          {
+            yPercent: 78,
+            autoAlpha: 0,
+            filter: "blur(9px)",
+          },
+          {
+            yPercent: 0,
+            autoAlpha: 1,
+            filter: "blur(0px)",
+            duration: 0.74,
+            ease: "power3.out",
+            stagger: 0.009,
+            delay: 0.06,
+          }
+        );
+      }
+
+      if (lines.length) {
+        gsap.fromTo(
+          lines,
+          { autoAlpha: 0.52, y: 15, filter: "blur(5px)" },
+          {
+            autoAlpha: 1,
+            y: 0,
+            filter: "blur(0px)",
+            duration: 0.58,
+            ease: "power2.out",
+            stagger: 0.06,
+            delay: 0.10,
+          }
+        );
+      }
+
+      return () => {
+        if (split) split.revert();
+      };
+    },
+    { dependencies: [active?.beat?.id], scope: cardRef }
+  );
+
+  if (!design.storyEnabled || !active) return null;
+
+  const { beat, opacity, local, entering, leaving } = active;
   const alignRight = beat.align === "right";
+  const driftX = alignRight ? entering * 14 - leaving * 8 : -entering * 14 + leaving * 8;
+  const driftY = entering * 10 - leaving * 10;
+  const softBlur = (entering + leaving) * 1.35;
+  const storyText = getBeatPlainText(beat);
 
   function handleMove(event) {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -2589,7 +2716,7 @@ function CinematicStoryLayer({ scroll, design }) {
 
   return (
     <div
-      className={`cinematicStoryLayer ${alignRight ? "right" : "left"}`}
+      className={`cinematicStoryLayer gsapActLayer ${alignRight ? "right" : "left"}`}
       style={{
         "--storyX": `${design.storyX}vw`,
         "--storyY": `${design.storyY}vh`,
@@ -2598,17 +2725,17 @@ function CinematicStoryLayer({ scroll, design }) {
         "--storyTitleSize": `${design.storyTitleSize}px`,
         "--storyKickerSize": `${design.storyKickerSize}px`,
         "--storyGlow": design.storyGlow,
-        "--storyBlur": `${design.storyBlur}px`,
+        "--storyBlur": `${Math.max(0, design.storyBlur + softBlur)}px`,
         "--storyAccent": design.storyAccent,
         "--storyColor": design.storyColor,
         "--storyMuted": design.storyMutedColor,
         "--storyGlitch": hovering ? design.storyHoverGlitch : design.storyGlitch,
-        transform: `translate3d(${alignRight ? -drift : drift}px, ${Math.sin(local * Math.PI) * -8}px, 0)`,
+        transform: `translate3d(${driftX}px, ${Math.sin(local * Math.PI) * -8 + driftY}px, 0)`,
       }}
     >
       <div
-        ref={containerRef}
-        className={`cinematicStoryCard ${hovering ? "is-hovering" : ""}`}
+        ref={cardRef}
+        className={`cinematicStoryCard gsapActCard ${hovering ? "is-hovering" : ""}`}
         onPointerEnter={() => setHovering(true)}
         onPointerLeave={() => setHovering(false)}
         onPointerMove={handleMove}
@@ -2617,7 +2744,7 @@ function CinematicStoryLayer({ scroll, design }) {
           {beat.eyebrow}
         </div>
 
-        <div className="cinematicStoryText" data-text={beat.lines.map((line) => line.map((t) => (typeof t === "string" ? t : t.text)).join("")).join(" ")}>
+        <div className="cinematicStoryText" data-text={storyText}>
           {beat.lines.map((line, index) => (
             <div className="cinematicStoryLine" key={`${beat.id}-${index}`}>
               <RichStoryLine tokens={line} />
@@ -2758,6 +2885,12 @@ function IntroMinimalInterface({ introOpacity }) {
           <span>ISTANBUL / 2556</span>
         </div>
       </nav>
+
+      <div className="introOpeningTitle">
+        <span>ISTANBUL / YEAR 2556</span>
+        <b>THE CITY HAS RUN OUT OF WATER.</b>
+        <small>Reservoirs have fallen silent. Beneath the streets, forgotten cisterns begin to react — not as water stores, but as a buried crystalline network waking under pressure.</small>
+      </div>
 
       <div className="cinematicScrollHint">
         <span />
@@ -3076,7 +3209,7 @@ export default function App() {
   const scroll = useScrollProgress();
   const siteRef = useRef(null);
 
-  const [designMode, setDesignMode] = useState(false);
+  const designMode = false;
   const [hovered, setHovered] = useState(null);
   const [selected, setSelected] = useState("basilica");
   const [activatedNodes, setActivatedNodes] = useState(["basilica"]);
@@ -3180,35 +3313,35 @@ export default function App() {
       storyEnabled: true,
       storyX: { value: 4.2, min: 0, max: 30, step: 0.1 },
       storyY: { value: 34, min: 5, max: 80, step: 0.5 },
-      storyMaxWidth: { value: 880, min: 360, max: 1400, step: 10 },
+      storyMaxWidth: { value: 980, min: 360, max: 1400, step: 10 },
       storyOpacity: { value: 1, min: 0, max: 1, step: 0.01 },
-      storyTitleSize: { value: 39, min: 18, max: 92, step: 1 },
-      storyKickerSize: { value: 10, min: 7, max: 18, step: 1 },
-      storyFadeSize: { value: 0.035, min: 0.008, max: 0.12, step: 0.002 },
-      storyDrift: { value: 18, min: 0, max: 80, step: 1 },
-      storyGlow: { value: 0.35, min: 0, max: 1.2, step: 0.01 },
-      storyBlur: { value: 0.2, min: 0, max: 8, step: 0.1 },
-      storyGlitch: { value: 0.16, min: 0, max: 1.2, step: 0.01 },
-      storyHoverGlitch: { value: 0.72, min: 0, max: 2.4, step: 0.01 },
+      storyTitleSize: { value: 68, min: 18, max: 92, step: 1 },
+      storyKickerSize: { value: 11, min: 7, max: 18, step: 1 },
+      storyFadeSize: { value: 0.052, min: 0.008, max: 0.12, step: 0.002 },
+      storyDrift: { value: 20, min: 0, max: 80, step: 1 },
+      storyGlow: { value: 0.3, min: 0, max: 1.2, step: 0.01 },
+      storyBlur: { value: 0.0, min: 0, max: 8, step: 0.1 },
+      storyGlitch: { value: 0.06, min: 0, max: 1.2, step: 0.01 },
+      storyHoverGlitch: { value: 0.2, min: 0, max: 2.4, step: 0.01 },
       storyAccent: "#9ffff3",
       storyColor: "#f4fffc",
       storyMutedColor: "rgba(244,255,252,0.36)",
 
-      storyDescentStart: { value: 0.135, min: 0.02, max: 0.42, step: 0.005 },
-      storyDescentEnd: { value: 0.255, min: 0.06, max: 0.55, step: 0.005 },
-      storyReactionStart: { value: 0.255, min: 0.1, max: 0.6, step: 0.005 },
-      storyReactionEnd: { value: 0.385, min: 0.16, max: 0.72, step: 0.005 },
-      storyCoreStart: { value: 0.385, min: 0.22, max: 0.76, step: 0.005 },
-      storyCoreEnd: { value: 0.535, min: 0.28, max: 0.84, step: 0.005 },
-      storyPortalStart: { value: 0.585, min: 0.36, max: 0.9, step: 0.005 },
-      storyPortalEnd: { value: 0.735, min: 0.44, max: 0.95, step: 0.005 },
-      storyMapStart: { value: 0.865, min: 0.5, max: 0.99, step: 0.005 },
-      storyMapEnd: { value: 0.955, min: 0.58, max: 1.0, step: 0.005 },
+      storyDescentStart: { value: 0.165, min: 0.02, max: 0.42, step: 0.005 },
+      storyDescentEnd: { value: 0.205, min: 0.06, max: 0.55, step: 0.005 },
+      storyReactionStart: { value: 0.235, min: 0.1, max: 0.6, step: 0.005 },
+      storyReactionEnd: { value: 0.39, min: 0.16, max: 0.72, step: 0.005 },
+      storyCoreStart: { value: 0.41, min: 0.22, max: 0.76, step: 0.005 },
+      storyCoreEnd: { value: 0.565, min: 0.28, max: 0.84, step: 0.005 },
+      storyPortalStart: { value: 0.59, min: 0.36, max: 0.9, step: 0.005 },
+      storyPortalEnd: { value: 0.745, min: 0.44, max: 0.95, step: 0.005 },
+      storyMapStart: { value: 0.85, min: 0.5, max: 0.99, step: 0.005 },
+      storyMapEnd: { value: 0.95, min: 0.58, max: 1.0, step: 0.005 },
     }),
 
     "APP_FLOW": folder({
       // Total page height. Lower value = less empty wheel travel and faster cinematic movement.
-      scrollHeightVh: { value: 700, min: 520, max: 1200, step: 10 },
+      scrollHeightVh: { value: 760, min: 520, max: 1200, step: 10 },
       cisternEnterStart: { value: 0.115, min: 0.02, max: 0.5, step: 0.005 },
       cisternEnterEnd: { value: 0.205, min: 0.08, max: 0.65, step: 0.005 },
       // Camera motion starts as soon as the CisternSceneLab is visible.
@@ -3222,7 +3355,7 @@ export default function App() {
       mapVisualEnd: { value: 0.915, min: 0.55, max: 1.0, step: 0.005 },
       cisternFadeLead: { value: 0.012, min: 0, max: 0.08, step: 0.002 },
       mapMountLead: { value: 0.018, min: 0, max: 0.08, step: 0.002 },
-      progressSmoothing: { value: 0.25, min: 0, max: 1, step: 0.01 },
+      progressSmoothing: { value: 0.38, min: 0, max: 1, step: 0.01 },
     }),
 
     "06_LIGHT_FOG_BLOOM": folder({
@@ -3326,7 +3459,8 @@ export default function App() {
   const portalWashProgress = 0;
   const portalWashOpacity = 0;
   const shouldMountMap = scroll >= mapVisualStart - (design.mapMountLead ?? 0.018);
-  const showIntroInterface = introOpacity > 0.04 && cisternOpacity < 0.12 && mapProgress < 0.02;
+  const showIntroInterface = introOpacity > 0.04 && scroll < design.introFadeEnd + 0.03 && cisternOpacity < 0.18 && mapProgress < 0.02;
+  const shouldRenderStory = preloaderDone && scroll >= design.storyReactionStart - 0.035 && introOpacity < 0.14;
 
   // HARD POINTER OWNERSHIP
   // Intro canvas is completely unmounted once CisternSceneLab starts becoming visible.
@@ -3343,15 +3477,6 @@ export default function App() {
       onMouseMove={showIntroInterface ? handleMouseMove : undefined}
       style={{ minHeight: `${design.scrollHeightVh}vh`, pointerEvents: "auto" }}
     >
-      <Leva hidden={!designMode} collapsed />
-
-      <button
-        className={`designToggle ${designMode ? "active" : ""}`}
-        onClick={() => setDesignMode((prev) => !prev)}
-        style={{ zIndex: 100000 }}
-      >
-        DESIGN MODE
-      </button>
 
       {!preloaderDone && (
         <CinematicPreloader
@@ -3404,10 +3529,10 @@ export default function App() {
             visibleProgress={1}
             portalProgress={portalProgress}
             mapProgress={mapProgress}
-            designMode={designMode}
+            designMode={false}
             showStory={true}
             showLabel={false}
-            showLeva={designMode}
+            showLeva={false}
           />
         </div>
 
@@ -3455,7 +3580,7 @@ export default function App() {
 
         {showIntroInterface && <IntroMinimalInterface introOpacity={introOpacity} />}
 
-        {preloaderDone && <CinematicStoryLayer scroll={scroll} design={design} />}
+        {shouldRenderStory && <CinematicStoryLayer scroll={scroll} design={design} />}
       </section>
 
       <section className="scroll-space storyScrollSpace" aria-hidden="true" style={{ height: `${design.scrollHeightVh}vh` }}>
