@@ -3368,3 +3368,36 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
     min-height: 132px !important;
   }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V85 PORTAL PERFORMANCE + ACT TIMING FINAL                                   */
+/* -------------------------------------------------------------------------- */
+
+/* During the portal-heavy section, full-screen glass/rain overlays add cost.
+   Keep the atmosphere but reduce the expensive layer. */
+.site.act-roots .rainGlass,
+.site.act-reactivation .rainGlass,
+.site.act-map .rainGlass {
+  opacity: 0.035 !important;
+}
+
+.site.act-roots .noise,
+.site.act-reactivation .noise,
+.site.act-map .noise {
+  opacity: 0.008 !important;
+}
+
+/* Keep ACT 04/map story quick and readable without long lingering. */
+.gsapSafeStory .cinematicStoryTitle {
+  text-wrap: balance;
+}
+
+/* Map mission panel must remain visible after final map reveal. */
+.site.act-map .mapMissionOverlay,
+.mapMissionOverlay.alwaysVisible,
+.mapMissionOverlay.persistent {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 0.96 !important;
+}
