@@ -8,7 +8,7 @@ import {
 } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { Effect, BlendFunction } from "postprocessing";
-import { Leva, useControls } from "leva";
+import { Leva, useControls, folder } from "leva";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
@@ -17,6 +17,8 @@ import CustomReflectiveGPGPUWater from "./CustomReflectiveGPGPUWater";
 const MODEL_BASE = "/model";
 const PORTAL_ARCH_PATH = `${MODEL_BASE}/portal_arch.glb`;
 const COLUMN_Y_OFFSET = -0.22;
+
+// FINAL REVISION: tuned halo, hitbox, camera particle pass, portal transition and analyze hint timing.
 
 const TEXTURE_PATHS = {
   columns: {
@@ -51,6 +53,10 @@ function smooth01(value) {
   return v * v * (3.0 - 2.0 * v);
 }
 
+function smoother01(value) {
+  return smooth01(smooth01(value));
+}
+
 
 function portalPhases(scrollProgress = 0, portalProgress = 0) {
   const s = clamp01(scrollProgress);
@@ -73,6 +79,7 @@ const CRYSTAL_MODES = [
   {
     id: "basilica",
     number: "01",
+    modelPath: `${MODEL_BASE}/hero_crystal.glb`,
     label: "BASILICA CISTERN",
     role: "ORIGIN CORE",
     tag: "ENERGY / REVEALED",
@@ -88,6 +95,7 @@ const CRYSTAL_MODES = [
   {
     id: "binbirdirek",
     number: "02",
+    modelPath: `${MODEL_BASE}/crystal_01.glb`,
     label: "BINBIRDIREK CISTERN",
     role: "CONNECTIVE NETWORK",
     tag: "FILAMENTS / DISTRIBUTION",
@@ -103,14 +111,15 @@ const CRYSTAL_MODES = [
   {
     id: "gulhane",
     number: "03",
+    modelPath: `${MODEL_BASE}/crystal_02.glb`,
     label: "GÜLHANE CISTERN",
     role: "STABILIZATION LAYER",
     tag: "DIFFUSION / BALANCE",
-    color: "#4aa8ff",
-    emissive: "#57c9ff",
-    particleA: "#57c9ff",
-    particleB: "#d7f7ff",
-    particleC: "#7fffee",
+    color: "#68ff9a",
+    emissive: "#9dffb7",
+    particleA: "#68ff9a",
+    particleB: "#dfffe8",
+    particleC: "#7cff68",
     title: "The unstable current is balanced.",
     body:
       "Gülhane stabilizes the new energy flow. It softens pressure spikes, diffuses excess charge and keeps the crystalline network from collapsing under its own output.",
@@ -118,6 +127,7 @@ const CRYSTAL_MODES = [
   {
     id: "serefiye",
     number: "04",
+    modelPath: `${MODEL_BASE}/crystal_03.glb`,
     label: "ŞEREFİYE CISTERN",
     role: "STORAGE CORE",
     tag: "ACCUMULATION / RESERVE",
@@ -133,14 +143,15 @@ const CRYSTAL_MODES = [
   {
     id: "fildami",
     number: "05",
+    modelPath: `${MODEL_BASE}/crystal_04.glb`,
     label: "FİLDAMI CISTERN",
     role: "RELEASE CORE",
     tag: "SURFACE / INTEGRATION",
     color: "#fff1c7",
     emissive: "#fff1c7",
-    particleA: "#fff1c7",
-    particleB: "#ffffff",
-    particleC: "#68ff9a",
+    particleA: "#4aa8ff",
+    particleB: "#d7f7ff",
+    particleC: "#7fffee",
     title: "The city receives the underground light.",
     body:
       "Fildamı is the release core. It transfers stored crystal energy from the underground system toward the urban surface, completing the city-scale power route.",
@@ -337,7 +348,7 @@ function useRockGeometry() {
 /*                                  STORY UI                                  */
 /* -------------------------------------------------------------------------- */
 
-function StoryOverlay({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 }) {
+function StoryOverlay({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0, onAnalyze }) {
   return (
     <div
       key={`${activeMode.id}-${modePulseKey}`}
@@ -347,7 +358,7 @@ function StoryOverlay({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 }) {
         bottom: 24,
         zIndex: 20,
         width: 420,
-        pointerEvents: "none",
+        pointerEvents: "auto",
         padding: "18px 20px",
         borderRadius: 18,
         border: `1px solid ${activeMode.color}44`,
@@ -360,6 +371,9 @@ function StoryOverlay({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 }) {
           "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
         animation: "crystalStoryIn 420ms cubic-bezier(0.16, 1, 0.3, 1) both",
       }}
+      onPointerDown={(event) => event.stopPropagation()}
+      onPointerUp={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
     >
       <style>{`
         @keyframes crystalStoryIn {
@@ -387,18 +401,29 @@ function StoryOverlay({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 }) {
           {activeMode.number} / {activeMode.role}
         </div>
 
-        <div
+        <button
+          type="button"
           style={{
             padding: "5px 8px",
             borderRadius: 999,
-            border: `1px solid ${activeMode.color}33`,
-            color: "rgba(223,255,251,0.7)",
+            border: `1px solid ${activeMode.color}55`,
+            color: "rgba(243,255,252,0.9)",
+            background: "rgba(2,18,20,0.28)",
             fontSize: 8,
             letterSpacing: "0.18em",
+            fontFamily: "inherit",
+            cursor: "pointer",
+            pointerEvents: "auto",
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerUp={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onAnalyze?.();
           }}
         >
           CLICK TO ANALYZE
-        </div>
+        </button>
       </div>
 
       <div
@@ -545,6 +570,7 @@ function SceneWarmup({ enabled = true }) {
 
 function CinematicCamera({ enabled, scrollProgress = 0, portalProgress = 0 }) {
   const { camera, pointer } = useThree();
+  const smoothLookRef = useRef(new THREE.Vector3(0, 0.62, -5.75));
 
   const cameraPath = useControls('CISTERN CAMERA / SCROLL PATH', {
     // Initial view: pulled closer so the cistern scene starts with less empty distance.
@@ -556,10 +582,10 @@ function CinematicCamera({ enabled, scrollProgress = 0, portalProgress = 0 }) {
     // Scroll phase ranges inside scrollProgress. Tighten these to remove dead scroll.
     approachStart: { value: 0.00, min: 0, max: 0.8, step: 0.005 },
     approachEnd: { value: 0.18, min: 0.02, max: 0.9, step: 0.005 },
-    passStart: { value: 0.14, min: 0, max: 0.9, step: 0.005 },
-    passEnd: { value: 0.36, min: 0.02, max: 1, step: 0.005 },
-    fogStart: { value: 0.34, min: 0, max: 0.95, step: 0.005 },
-    fogEnd: { value: 0.56, min: 0.05, max: 1, step: 0.005 },
+    passStart: { value: 0.17, min: 0, max: 0.9, step: 0.005 },
+    passEnd: { value: 0.44, min: 0.02, max: 1, step: 0.005 },
+    fogStart: { value: 0.36, min: 0, max: 0.95, step: 0.005 },
+    fogEnd: { value: 0.58, min: 0.05, max: 1, step: 0.005 },
 
     nearCrystalZ: { value: 1.72, min: 0.5, max: 4.5, step: 0.01 },
     particlePassY: { value: 1.08, min: 0.2, max: 2.4, step: 0.01 },
@@ -570,24 +596,31 @@ function CinematicCamera({ enabled, scrollProgress = 0, portalProgress = 0 }) {
     // Portal camera phases are based on portalProgress.
     portalRevealStart: { value: 0.06, min: 0, max: 0.9, step: 0.005 },
     portalRevealEnd: { value: 0.34, min: 0.02, max: 1, step: 0.005 },
-    portalEnterStart: { value: 0.42, min: 0, max: 0.95, step: 0.005 },
-    portalEnterEnd: { value: 0.90, min: 0.05, max: 1, step: 0.005 },
+    portalEnterStart: { value: 0.34, min: 0, max: 0.95, step: 0.005 },
+    portalEnterEnd: { value: 1.0, min: 0.05, max: 1, step: 0.005 },
     portalFrontY: { value: 1.28, min: 0.2, max: 3.2, step: 0.01 },
-    portalFrontZ: { value: -6.12, min: -10, max: -3, step: 0.01 },
+    portalFrontZ: { value: -6.72, min: -10, max: -3, step: 0.01 },
     portalInsideY: { value: 1.28, min: 0.2, max: 3.2, step: 0.01 },
-    portalInsideZ: { value: -6.88, min: -12, max: -4, step: 0.01 },
+    portalInsideZ: { value: -8.82, min: -12, max: -4, step: 0.01 },
     lookStartY: { value: 0.62, min: -1, max: 2.5, step: 0.01 },
     lookStartZ: { value: -5.75, min: -10, max: 1, step: 0.01 },
     lookFogY: { value: 1.04, min: 0.1, max: 3, step: 0.01 },
-    lookFogZ: { value: -7.05, min: -12, max: -2, step: 0.01 },
+    lookFogZ: { value: -7.35, min: -12, max: -2, step: 0.01 },
     lookPortalY: { value: 1.32, min: 0.2, max: 3.2, step: 0.01 },
-    lookPortalZ: { value: -8.35, min: -13, max: -4, step: 0.01 },
+    lookPortalZ: { value: -9.45, min: -13, max: -4, step: 0.01 },
+
+    // Smooth focus shift: avoids the hard snap from crystal focus to particle focus.
+    focusShiftStart: { value: 0.20, min: 0, max: 0.8, step: 0.005 },
+    focusShiftEnd: { value: 0.48, min: 0.02, max: 0.9, step: 0.005 },
+    particleLookY: { value: 1.04, min: 0.1, max: 3.0, step: 0.01 },
+    particleLookZ: { value: -5.92, min: -10, max: 0, step: 0.01 },
+    lookFollow: { value: 0.074, min: 0.01, max: 0.22, step: 0.002 },
 
     followBase: { value: 0.075, min: 0.02, max: 0.18, step: 0.002 },
-    enterFollow: { value: 0.122, min: 0.02, max: 0.22, step: 0.002 },
+    enterFollow: { value: 0.178, min: 0.02, max: 0.22, step: 0.002 },
     fovFogBoost: { value: 1.8, min: 0, max: 12, step: 0.1 },
-    fovPortalBoost: { value: 1.0, min: 0, max: 12, step: 0.1 },
-    enterFovBoost: { value: 2.4, min: 0, max: 12, step: 0.1 },
+    fovPortalBoost: { value: 2.2, min: 0, max: 12, step: 0.1 },
+    enterFovBoost: { value: 5.2, min: 0, max: 12, step: 0.1 },
   });
 
   useFrame((state) => {
@@ -598,11 +631,12 @@ function CinematicCamera({ enabled, scrollProgress = 0, portalProgress = 0 }) {
     const p = clamp01(portalProgress);
     // Camera phases are now fully controllable in Design Mode.
     // This fixes "dead scroll" by letting the motion begin immediately after the scene fade-in.
-    const particleApproach = smooth01(range01(s, cameraPath.approachStart, cameraPath.approachEnd));
-    const particlePass = smooth01(range01(s, cameraPath.passStart, cameraPath.passEnd));
-    const fogEnter = smooth01(range01(s, cameraPath.fogStart, cameraPath.fogEnd));
-    const portalReveal = smooth01(range01(p, cameraPath.portalRevealStart, cameraPath.portalRevealEnd));
-    const portalEnter = smooth01(range01(p, cameraPath.portalEnterStart, cameraPath.portalEnterEnd));
+    const particleApproach = smoother01(range01(s, cameraPath.approachStart, cameraPath.approachEnd));
+    const particlePass = smoother01(range01(s, cameraPath.passStart, cameraPath.passEnd));
+    const fogEnter = smoother01(range01(s, cameraPath.fogStart, cameraPath.fogEnd));
+    const portalReveal = smoother01(range01(p, cameraPath.portalRevealStart, cameraPath.portalRevealEnd));
+    const portalEnter = smoother01(range01(p, cameraPath.portalEnterStart, cameraPath.portalEnterEnd));
+    const focusShift = smoother01(range01(s, cameraPath.focusShiftStart, cameraPath.focusShiftEnd));
 
     // FINAL CAMERA PATH
     // 1) wide cistern
@@ -644,10 +678,14 @@ function CinematicCamera({ enabled, scrollProgress = 0, portalProgress = 0 }) {
     camera.updateProjectionMatrix();
 
     const look = new THREE.Vector3(0, cameraPath.lookStartY, cameraPath.lookStartZ);
+    look.lerp(new THREE.Vector3(0, cameraPath.particleLookY, cameraPath.particleLookZ), focusShift);
     look.lerp(new THREE.Vector3(0, cameraPath.lookFogY, cameraPath.lookFogZ), fogEnter);
     look.lerp(new THREE.Vector3(0, cameraPath.lookPortalY, cameraPath.lookPortalZ), portalReveal);
-    look.lerp(new THREE.Vector3(0, cameraPath.lookPortalY, cameraPath.lookPortalZ - 0.45), portalEnter);
-    camera.lookAt(look);
+    look.lerp(new THREE.Vector3(0, cameraPath.lookPortalY, cameraPath.lookPortalZ - 0.85), portalEnter);
+
+    // Smooth the look target separately from camera position. This removes the harsh focus jump.
+    smoothLookRef.current.lerp(look, cameraPath.lookFollow);
+    camera.lookAt(smoothLookRef.current);
   });
 
   return null;
@@ -658,7 +696,16 @@ function CinematicCamera({ enabled, scrollProgress = 0, portalProgress = 0 }) {
 /* -------------------------------------------------------------------------- */
 
 
-function CrystalShapeCluster({ activeMode = CRYSTAL_MODES[0] }) {
+function CrystalShapeCluster({
+  activeMode = CRYSTAL_MODES[0],
+  visible = false,
+  shardCount = 0,
+  shardScale = 1,
+  shardOpacity = 0.78,
+  shardRadius = 1,
+  shardHeight = 1,
+  shardSpinSpeed = 1,
+}) {
   const group = useRef();
   const id = activeMode?.id || "basilica";
   const modeColor = activeMode?.color || "#63fff0";
@@ -671,29 +718,21 @@ function CrystalShapeCluster({ activeMode = CRYSTAL_MODES[0] }) {
       return v - Math.floor(v);
     };
 
-    const countMap = {
-      basilica: 7,
-      binbirdirek: 10,
-      gulhane: 6,
-      serefiye: 12,
-      fildami: 8,
-    };
-
-    const count = countMap[id] || 8;
+    const count = Math.max(0, Math.floor(Number(shardCount || 0)));
 
     return Array.from({ length: count }, (_, index) => {
       const a = (index / count) * Math.PI * 2 + (random(index + 1) - 0.5) * 0.45;
-      const radius = 0.18 + random(index + 3) * 0.36;
+      const radius = (0.18 + random(index + 3) * 0.36) * shardRadius;
       const tall = id === "serefiye" ? 1.35 : id === "gulhane" ? 0.72 : 1;
       return {
         position: [
           Math.cos(a) * radius,
-          0.04 + random(index + 4) * 0.46,
+          (0.04 + random(index + 4) * 0.46) * shardHeight,
           Math.sin(a) * radius,
         ],
         scale: [
           0.035 + random(index + 5) * 0.075,
-          (0.12 + random(index + 6) * 0.24) * tall,
+          (0.12 + random(index + 6) * 0.24) * tall * shardHeight,
           0.035 + random(index + 7) * 0.075,
         ],
         rotation: [
@@ -703,7 +742,7 @@ function CrystalShapeCluster({ activeMode = CRYSTAL_MODES[0] }) {
         ],
       };
     });
-  }, [id]);
+  }, [id, shardCount, shardRadius, shardHeight]);
 
   const material = useMemo(() => {
     return new THREE.MeshPhysicalMaterial({
@@ -717,11 +756,11 @@ function CrystalShapeCluster({ activeMode = CRYSTAL_MODES[0] }) {
       clearcoat: 1,
       clearcoatRoughness: 0.18,
       transparent: true,
-      opacity: 0.78,
+      opacity: shardOpacity,
       envMapIntensity: 0.85,
       flatShading: true,
     });
-  }, [modeColor, modeEmissive]);
+  }, [modeColor, modeEmissive, shardOpacity]);
 
   useEffect(() => () => material.dispose(), [material]);
 
@@ -729,12 +768,14 @@ function CrystalShapeCluster({ activeMode = CRYSTAL_MODES[0] }) {
     if (!group.current) return;
     group.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.2) * 0.045;
     group.current.children.forEach((child, index) => {
-      child.rotation.y += 0.0015 + index * 0.00008;
+      child.rotation.y += (0.0015 + index * 0.00008) * shardSpinSpeed;
     });
   });
 
+  if (!visible) return null;
+
   return (
-    <group ref={group}>
+    <group ref={group} scale={shardScale}>
       {shards.map((shard, index) => (
         <mesh
           key={`${id}-shape-shard-${index}`}
@@ -752,6 +793,15 @@ function CrystalShapeCluster({ activeMode = CRYSTAL_MODES[0] }) {
   );
 }
 
+
+// Preload all crystal models so changing the crystal does not suspend the Canvas.
+// This removes the short black flashes that can happen while GLB assets are fetched.
+CRYSTAL_MODES.forEach((mode) => {
+  if (mode?.modelPath) useGLTF.preload(mode.modelPath);
+});
+useGLTF.preload(`${MODEL_BASE}/hero_crystal.glb`);
+useGLTF.preload(PORTAL_ARCH_PATH);
+
 function CrystalCore({ activeMode = CRYSTAL_MODES[0], onModeChange }) {
   const group = useRef();
   const coreLight = useRef();
@@ -761,7 +811,9 @@ function CrystalCore({ activeMode = CRYSTAL_MODES[0], onModeChange }) {
   const pulseRef = useRef(0);
   const crystalPointerDownRef = useRef(null);
 
-  const { scene } = useGLTF(`${MODEL_BASE}/hero_crystal.glb`);
+  const modelPath = activeMode?.modelPath || `${MODEL_BASE}/hero_crystal.glb`;
+  const { scene } = useGLTF(modelPath);
+  const { scene: heroReferenceScene } = useGLTF(`${MODEL_BASE}/hero_crystal.glb`);
 
   const {
     crystalEmissive,
@@ -775,8 +827,32 @@ function CrystalCore({ activeMode = CRYSTAL_MODES[0], onModeChange }) {
     crystalThickness,
     crystalIOR,
     crystalOpacity,
+    auraEnabled,
     auraOpacity,
     auraRadius,
+    auraPulseOpacity,
+    auraPulseScale,
+    auraDepthTest,
+    auraRingEnabled,
+    auraRingOpacity,
+    auraRingInner,
+    auraRingOuter,
+    auraRingPulseOpacity,
+    auraRingSpinSpeed,
+    crystalChangePulseScale,
+    crystalChangePulseLight,
+    modelAutoRecolor,
+    modelMaterialGlow,
+    autoFitModels,
+    heroReferenceMultiplier,
+    centerModelOnPedestal,
+    showProceduralShards,
+    proceduralShardCount,
+    proceduralShardScale,
+    proceduralShardOpacity,
+    proceduralShardRadius,
+    proceduralShardHeight,
+    proceduralShardSpinSpeed,
     lightPulse,
   } = useControls("Crystal", {
     crystalEmissive: { value: 1.85, min: 0, max: 6, step: 0.05 },
@@ -793,11 +869,103 @@ function CrystalCore({ activeMode = CRYSTAL_MODES[0], onModeChange }) {
     crystalIOR: { value: 1.44, min: 1, max: 2.3, step: 0.01 },
     crystalOpacity: { value: 1.0, min: 0.72, max: 1, step: 0.01 },
 
-    auraOpacity: { value: 0.095, min: 0, max: 0.5, step: 0.005 },
-    auraRadius: { value: 1.16, min: 0.3, max: 3, step: 0.02 },
+    auraEnabled: true,
+    auraOpacity: { value: 0.010, min: 0, max: 0.22, step: 0.002 },
+    auraRadius: { value: 0.44, min: 0.15, max: 2.2, step: 0.01 },
+    auraPulseOpacity: { value: 0.002, min: 0, max: 0.16, step: 0.002 },
+    auraPulseScale: { value: 0.003, min: 0, max: 0.28, step: 0.002 },
+    auraDepthTest: true,
+    auraRingEnabled: true,
+    auraRingOpacity: { value: 0.004, min: 0, max: 0.18, step: 0.002 },
+    auraRingInner: { value: 0.31, min: 0.05, max: 2.0, step: 0.01 },
+    auraRingOuter: { value: 0.49, min: 0.06, max: 2.6, step: 0.01 },
+    auraRingPulseOpacity: { value: 0.0015, min: 0, max: 0.14, step: 0.002 },
+    auraRingSpinSpeed: { value: 0.18, min: 0, max: 2.0, step: 0.01 },
+    crystalChangePulseScale: { value: 0.004, min: 0, max: 0.16, step: 0.002 },
+    crystalChangePulseLight: { value: 0.26, min: 0, max: 5, step: 0.05 },
+
+    modelAutoRecolor: false,
+    modelMaterialGlow: { value: 0.05, min: 0, max: 2.5, step: 0.01 },
+
+    autoFitModels: true,
+    heroReferenceMultiplier: { value: 1.0, min: 0.1, max: 4.0, step: 0.01 },
+    centerModelOnPedestal: true,
+
+    showProceduralShards: false,
+    proceduralShardCount: { value: 0, min: 0, max: 24, step: 1 },
+    proceduralShardScale: { value: 1.0, min: 0.05, max: 4, step: 0.01 },
+    proceduralShardOpacity: { value: 0.48, min: 0, max: 1, step: 0.01 },
+    proceduralShardRadius: { value: 1.0, min: 0.1, max: 4, step: 0.01 },
+    proceduralShardHeight: { value: 1.0, min: 0.1, max: 4, step: 0.01 },
+    proceduralShardSpinSpeed: { value: 1.0, min: 0, max: 5, step: 0.01 },
 
     lightPulse: true,
   });
+
+  const modelFitControls = useControls("Crystal Model Fit / Per Cistern", {
+    "01 Basilica": folder({
+      basilicaScale: { value: 1.0, min: 0.02, max: 8, step: 0.01 },
+      basilicaX: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      basilicaY: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      basilicaZ: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      basilicaRotX: { value: 0, min: -180, max: 180, step: 1 },
+      basilicaRotY: { value: 0, min: -180, max: 180, step: 1 },
+      basilicaRotZ: { value: 0, min: -180, max: 180, step: 1 },
+      basilicaHitbox: { value: 0.62, min: 0.05, max: 4, step: 0.01 },
+    }),
+    "02 Binbirdirek": folder({
+      binbirdirekScale: { value: 1.0, min: 0.02, max: 8, step: 0.01 },
+      binbirdirekX: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      binbirdirekY: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      binbirdirekZ: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      binbirdirekRotX: { value: 0, min: -180, max: 180, step: 1 },
+      binbirdirekRotY: { value: 0, min: -180, max: 180, step: 1 },
+      binbirdirekRotZ: { value: 0, min: -180, max: 180, step: 1 },
+      binbirdirekHitbox: { value: 0.62, min: 0.05, max: 4, step: 0.01 },
+    }),
+    "03 Gülhane": folder({
+      gulhaneScale: { value: 1.0, min: 0.02, max: 8, step: 0.01 },
+      gulhaneX: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      gulhaneY: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      gulhaneZ: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      gulhaneRotX: { value: 0, min: -180, max: 180, step: 1 },
+      gulhaneRotY: { value: 0, min: -180, max: 180, step: 1 },
+      gulhaneRotZ: { value: 0, min: -180, max: 180, step: 1 },
+      gulhaneHitbox: { value: 0.62, min: 0.05, max: 4, step: 0.01 },
+    }),
+    "04 Şerefiye": folder({
+      serefiyeScale: { value: 1.0, min: 0.02, max: 8, step: 0.01 },
+      serefiyeX: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      serefiyeY: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      serefiyeZ: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      serefiyeRotX: { value: 0, min: -180, max: 180, step: 1 },
+      serefiyeRotY: { value: 0, min: -180, max: 180, step: 1 },
+      serefiyeRotZ: { value: 0, min: -180, max: 180, step: 1 },
+      serefiyeHitbox: { value: 0.62, min: 0.05, max: 4, step: 0.01 },
+    }),
+    "05 Fildamı": folder({
+      fildamiScale: { value: 1.0, min: 0.02, max: 8, step: 0.01 },
+      fildamiX: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      fildamiY: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      fildamiZ: { value: 0, min: -2.5, max: 2.5, step: 0.01 },
+      fildamiRotX: { value: 0, min: -180, max: 180, step: 1 },
+      fildamiRotY: { value: 0, min: -180, max: 180, step: 1 },
+      fildamiRotZ: { value: 0, min: -180, max: 180, step: 1 },
+      fildamiHitbox: { value: 0.62, min: 0.05, max: 4, step: 0.01 },
+    }),
+  });
+
+  const modelFitKey = activeMode?.id || "basilica";
+  const activeModelFit = {
+    scale: modelFitControls[`${modelFitKey}Scale`] ?? 1,
+    x: modelFitControls[`${modelFitKey}X`] ?? 0,
+    y: modelFitControls[`${modelFitKey}Y`] ?? 0,
+    z: modelFitControls[`${modelFitKey}Z`] ?? 0,
+    rotX: THREE.MathUtils.degToRad(modelFitControls[`${modelFitKey}RotX`] ?? 0),
+    rotY: THREE.MathUtils.degToRad(modelFitControls[`${modelFitKey}RotY`] ?? 0),
+    rotZ: THREE.MathUtils.degToRad(modelFitControls[`${modelFitKey}RotZ`] ?? 0),
+    hitbox: modelFitControls[`${modelFitKey}Hitbox`] ?? 0.82,
+  };
 
   const modeColor = activeMode?.color || "#bafff7";
   const modeEmissive = activeMode?.emissive || activeMode?.color || "#63fff0";
@@ -811,33 +979,60 @@ function CrystalCore({ activeMode = CRYSTAL_MODES[0], onModeChange }) {
       child.castShadow = true;
       child.receiveShadow = true;
 
-      child.material = new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(modeColor),
-        emissive: new THREE.Color(modeEmissive),
-        emissiveIntensity: crystalEmissive,
+      if (modelAutoRecolor) {
+        child.material = new THREE.MeshPhysicalMaterial({
+          color: new THREE.Color(modeColor),
+          emissive: new THREE.Color(modeEmissive),
+          emissiveIntensity: crystalEmissive,
 
-        roughness: crystalRoughness,
-        metalness: 0.01,
+          roughness: crystalRoughness,
+          metalness: 0.01,
 
-        transmission: crystalTransmission,
-        thickness: crystalThickness,
-        ior: crystalIOR,
+          transmission: crystalTransmission,
+          thickness: crystalThickness,
+          ior: crystalIOR,
 
-        attenuationColor: new THREE.Color(modeColor),
-        attenuationDistance: 0.32,
+          attenuationColor: new THREE.Color(modeColor),
+          attenuationDistance: 0.32,
 
-        transparent: crystalOpacity < 0.999,
-        opacity: crystalOpacity,
-        depthWrite: true,
-        depthTest: true,
+          transparent: crystalOpacity < 0.999,
+          opacity: crystalOpacity,
+          depthWrite: true,
+          depthTest: true,
 
-        clearcoat: 1,
-        clearcoatRoughness: 0.32,
-        reflectivity: 0.78,
+          clearcoat: 1,
+          clearcoatRoughness: 0.32,
+          reflectivity: 0.78,
 
-        side: THREE.FrontSide,
-        envMapIntensity: 1.1,
-      });
+          side: THREE.FrontSide,
+          envMapIntensity: 1.1,
+        });
+      } else {
+        const cloneMaterial = (material) => {
+          const cloned = material?.clone?.() || new THREE.MeshStandardMaterial({ color: "#ffffff" });
+
+          if ("emissive" in cloned && cloned.emissive) {
+            cloned.emissive = new THREE.Color(modeEmissive);
+            cloned.emissiveIntensity = modelMaterialGlow;
+          }
+
+          if ("envMapIntensity" in cloned) {
+            cloned.envMapIntensity = Math.max(cloned.envMapIntensity || 0, 0.75);
+          }
+
+          cloned.transparent = cloned.transparent || crystalOpacity < 0.999;
+          cloned.opacity = Math.min(cloned.opacity ?? 1, crystalOpacity);
+          cloned.depthWrite = true;
+          cloned.depthTest = true;
+          cloned.needsUpdate = true;
+
+          return cloned;
+        };
+
+        child.material = Array.isArray(child.material)
+          ? child.material.map(cloneMaterial)
+          : cloneMaterial(child.material);
+      }
     });
 
     return copy;
@@ -851,6 +1046,57 @@ function CrystalCore({ activeMode = CRYSTAL_MODES[0], onModeChange }) {
     crystalThickness,
     crystalIOR,
     crystalOpacity,
+    modelAutoRecolor,
+    modelMaterialGlow,
+  ]);
+
+
+
+  const fittedModel = useMemo(() => {
+    const box = new THREE.Box3().setFromObject(crystal);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+
+    box.getSize(size);
+    box.getCenter(center);
+
+    const heroBox = new THREE.Box3().setFromObject(heroReferenceScene);
+    const heroSize = new THREE.Vector3();
+    const heroCenter = new THREE.Vector3();
+
+    heroBox.getSize(heroSize);
+    heroBox.getCenter(heroCenter);
+
+    const safeHeight = Math.max(size.y || 0, 0.0001);
+    const heroHeight = Math.max(heroSize.y || safeHeight, 0.0001);
+    const referenceMultiplier = Math.max(0.001, Number(heroReferenceMultiplier || 1));
+
+    // Every imported GLB is normalized to the original hero_crystal.glb height.
+    // This means crystal_01, crystal_02, crystal_03 and crystal_04 inherit the
+    // same visual size language as the original hero crystal instead of each file
+    // bringing its own random scale.
+    const fitScale = autoFitModels
+      ? Math.min(30, Math.max(0.001, (heroHeight * referenceMultiplier) / safeHeight))
+      : 1;
+
+    // Align the active model to the original hero crystal's visual position:
+    // X/Z center follows the hero crystal center, and the model bottom sits on the
+    // same local baseline. For hero_crystal itself this returns zero offset.
+    const offset = centerModelOnPedestal
+      ? new THREE.Vector3(
+          heroCenter.x / fitScale - center.x,
+          heroBox.min.y / fitScale - box.min.y,
+          heroCenter.z / fitScale - center.z
+        )
+      : new THREE.Vector3(0, 0, 0);
+
+    return { fitScale, offset, heroHeight, currentHeight: safeHeight };
+  }, [
+    crystal,
+    heroReferenceScene,
+    autoFitModels,
+    heroReferenceMultiplier,
+    centerModelOnPedestal,
   ]);
 
   useEffect(() => {
@@ -890,41 +1136,53 @@ function CrystalCore({ activeMode = CRYSTAL_MODES[0], onModeChange }) {
     pulseRef.current = THREE.MathUtils.lerp(pulseRef.current, 0, 0.075);
 
     if (group.current) {
-      group.current.position.y = crystalY;
-      group.current.rotation.y = Math.sin(t * 0.18) * 0.035 + pulse * 0.05;
-      group.current.scale.setScalar(crystalScale * (1 + pulse * 0.055));
+      group.current.position.set(
+        activeModelFit.x,
+        crystalY + activeModelFit.y,
+        -5.75 + activeModelFit.z
+      );
+      group.current.rotation.x = activeModelFit.rotX;
+      group.current.rotation.y = activeModelFit.rotY + Math.sin(t * 0.18) * 0.035 + pulse * 0.05;
+      group.current.rotation.z = activeModelFit.rotZ;
+      group.current.scale.setScalar(crystalScale * activeModelFit.scale * (1 + pulse * crystalChangePulseScale));
     }
 
     if (auraRef.current) {
+      auraRef.current.visible = auraEnabled;
       auraRef.current.material.color.set(modeColor);
-      auraRef.current.material.opacity =
-        auraOpacity + Math.sin(t * 1.4) * auraOpacity * 0.22 + pulse * 0.08;
-      auraRef.current.scale.setScalar(1 + Math.sin(t * 1.2) * 0.025 + pulse * 0.07);
+      auraRef.current.material.depthTest = auraDepthTest;
+      auraRef.current.material.opacity = auraEnabled
+        ? auraOpacity + Math.sin(t * 1.4) * auraOpacity * 0.12 + pulse * auraPulseOpacity
+        : 0;
+      auraRef.current.scale.setScalar(1 + Math.sin(t * 1.2) * 0.012 + pulse * auraPulseScale);
     }
 
     if (auraRingRef.current) {
+      auraRingRef.current.visible = auraRingEnabled;
       auraRingRef.current.material.color.set(activeMode?.particleC || "#8b62ff");
-      auraRingRef.current.material.opacity =
-        auraOpacity * 0.7 + Math.sin(t * 1.8 + 0.6) * auraOpacity * 0.18 + pulse * 0.05;
-      auraRingRef.current.rotation.z = t * 0.08 + pulse * 0.2;
+      auraRingRef.current.material.depthTest = auraDepthTest;
+      auraRingRef.current.material.opacity = auraRingEnabled
+        ? auraRingOpacity + Math.sin(t * 1.8 + 0.6) * auraRingOpacity * 0.12 + pulse * auraRingPulseOpacity
+        : 0;
+      auraRingRef.current.rotation.z = t * auraRingSpinSpeed + pulse * 0.04;
     }
 
     const pulseBoost = lightPulse ? Math.sin(t * 1.25) * 0.07 : 0;
 
     if (coreLight.current) {
       coreLight.current.color.set(modeEmissive);
-      coreLight.current.intensity = crystalLight * (1 + pulseBoost) + pulse * 2.4;
+      coreLight.current.intensity = crystalLight * (1 + pulseBoost) + pulse * crystalChangePulseLight;
     }
 
     if (bottomLight.current) {
       bottomLight.current.color.set(modeColor);
       bottomLight.current.intensity =
-        crystalBottomLight * (1 + Math.sin(t * 1.05 + 1.4) * 0.08) + pulse * 1.6;
+        crystalBottomLight * (1 + Math.sin(t * 1.05 + 1.4) * 0.08) + pulse * crystalChangePulseLight * 0.55;
     }
   });
 
   return (
-    <group ref={group} position={[0, crystalY, -5.75]} scale={crystalScale}>
+    <group ref={group} position={[activeModelFit.x, crystalY + activeModelFit.y, -5.75 + activeModelFit.z]} rotation={[activeModelFit.rotX, activeModelFit.rotY, activeModelFit.rotZ]} scale={crystalScale * activeModelFit.scale}>
       <mesh
         ref={auraRef}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -934,8 +1192,9 @@ function CrystalCore({ activeMode = CRYSTAL_MODES[0], onModeChange }) {
         <meshBasicMaterial
           color={modeColor}
           transparent
-          opacity={auraOpacity}
+          opacity={auraEnabled ? auraOpacity : 0}
           depthWrite={false}
+          depthTest={auraDepthTest}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
@@ -945,21 +1204,39 @@ function CrystalCore({ activeMode = CRYSTAL_MODES[0], onModeChange }) {
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, -0.235, 0]}
       >
-        <ringGeometry args={[auraRadius * 0.55, auraRadius * 1.05, 96]} />
+        <ringGeometry args={[auraRingInner, auraRingOuter, 96]} />
         <meshBasicMaterial
           color={activeMode?.particleC || "#8b62ff"}
           transparent
-          opacity={auraOpacity * 0.65}
+          opacity={auraRingEnabled ? auraRingOpacity : 0}
           depthWrite={false}
+          depthTest={auraDepthTest}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
 
-      <primitive object={crystal} />
-      <CrystalShapeCluster activeMode={activeMode} />
+      <group scale={fittedModel.fitScale}>
+        <primitive object={crystal} position={fittedModel.offset} />
+      </group>
+
+      <CrystalShapeCluster
+        activeMode={activeMode}
+        visible={showProceduralShards}
+        shardCount={proceduralShardCount}
+        shardScale={proceduralShardScale}
+        shardOpacity={proceduralShardOpacity}
+        shardRadius={proceduralShardRadius}
+        shardHeight={proceduralShardHeight}
+        shardSpinSpeed={proceduralShardSpinSpeed}
+      />
 
       <mesh
-        position={[0, 0.25, 0]}
+        position={[0, 0.08, 0]}
+        scale={[
+          Math.max(0.22, activeModelFit.hitbox * 0.92),
+          Math.max(0.18, activeModelFit.hitbox * 0.62),
+          Math.max(0.22, activeModelFit.hitbox * 0.92),
+        ]}
         onPointerOver={(event) => {
           event.stopPropagation();
           document.body.classList.add("crystal-hover");
@@ -971,7 +1248,7 @@ function CrystalCore({ activeMode = CRYSTAL_MODES[0], onModeChange }) {
         onPointerDown={handleCrystalPointerDown}
         onPointerUp={handleCrystalPointerUp}
       >
-        <sphereGeometry args={[0.82, 32, 18]} />
+        <sphereGeometry args={[1, 32, 18]} />
         <meshBasicMaterial
           transparent
           opacity={0}
@@ -1050,37 +1327,47 @@ function CrystalPedestal() {
   });
 
   const stones = useMemo(() => {
-    return Array.from({ length: 22 }, () => ({
+    const seeded = (n) => {
+      const v = Math.sin((n + 17) * 91.137) * 43758.5453;
+      return v - Math.floor(v);
+    };
+
+    return Array.from({ length: 22 }, (_, index) => ({
       position: [
-        (Math.random() - 0.5) * 2.35,
-        -0.17 + Math.random() * 0.055,
-        -5.75 + (Math.random() - 0.5) * 1.65,
+        (seeded(index * 11 + 1) - 0.5) * 2.35,
+        -0.17 + seeded(index * 11 + 2) * 0.055,
+        -5.75 + (seeded(index * 11 + 3) - 0.5) * 1.65,
       ],
       scale: [
-        0.16 + Math.random() * 0.3,
-        0.07 + Math.random() * 0.16,
-        0.15 + Math.random() * 0.26,
+        0.16 + seeded(index * 11 + 4) * 0.3,
+        0.07 + seeded(index * 11 + 5) * 0.16,
+        0.15 + seeded(index * 11 + 6) * 0.26,
       ],
       rotation: [
-        Math.random() * 0.55,
-        Math.random() * Math.PI,
-        Math.random() * 0.55,
+        seeded(index * 11 + 7) * 0.55,
+        seeded(index * 11 + 8) * Math.PI,
+        seeded(index * 11 + 9) * 0.55,
       ],
     }));
   }, []);
 
   const shards = useMemo(() => {
+    const seeded = (n) => {
+      const v = Math.sin((n + 131) * 73.193) * 24634.6345;
+      return v - Math.floor(v);
+    };
+
     return Array.from({ length: 9 }, (_, index) => ({
       position: [
-        (Math.random() - 0.5) * 1.65,
-        -0.08 + Math.random() * 0.055,
-        -5.75 + (Math.random() - 0.5) * 1.05,
+        (seeded(index * 9 + 1) - 0.5) * 1.65,
+        -0.08 + seeded(index * 9 + 2) * 0.055,
+        -5.75 + (seeded(index * 9 + 3) - 0.5) * 1.05,
       ],
-      scale: 0.055 + Math.random() * 0.08,
+      scale: 0.055 + seeded(index * 9 + 4) * 0.08,
       rotation: [
-        Math.random() * 0.35,
-        Math.random() * Math.PI,
-        Math.random() * 0.35,
+        seeded(index * 9 + 5) * 0.35,
+        seeded(index * 9 + 6) * Math.PI,
+        seeded(index * 9 + 7) * 0.35,
       ],
       color: index % 3 === 0 ? "#8b62ff" : "#7fffee",
     }));
@@ -1581,6 +1868,7 @@ function CrystalBackFog({ portalProgress = 0, activeMode = CRYSTAL_MODES[0] }) {
 
 
 function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 }) {
+  const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")));
   const points = useRef();
   const interactionMeshRef = useRef();
   const hoverStrengthRef = useRef(0);
@@ -1588,8 +1876,7 @@ function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 
   const pointerTargetRef = useRef(new THREE.Vector2(0, 0));
   const pointerUniformRef = useRef(new THREE.Vector2(0, 0));
 
-  const defaultCount =
-    typeof window !== "undefined" && window.innerWidth < 768 ? 520 : 980;
+  const defaultCount = mobile ? 460 : 820;
 
   const {
     particleEnabled,
@@ -1621,7 +1908,7 @@ function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 
   } = useControls("Scattering Particles", {
     particleEnabled: true,
     particleCount: { value: defaultCount, min: 180, max: 2600, step: 50 },
-    particleOpacity: { value: 0.42, min: 0, max: 1, step: 0.01 },
+    particleOpacity: { value: mobile ? 0.32 : 0.38, min: 0, max: 1, step: 0.01 },
     particleSize: { value: 0.058, min: 0.01, max: 0.22, step: 0.001 },
     particleSpeed: { value: 0.28, min: 0, max: 1.4, step: 0.01 },
     particleHeight: { value: 2.95, min: 0.6, max: 7.5, step: 0.05 },
@@ -1643,9 +1930,42 @@ function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 
     particlePointerStrength: { value: 0.78, min: 0, max: 2.5, step: 0.01 },
     particlePointerRadius: { value: 1.05, min: 0.2, max: 3.0, step: 0.01 },
     particlePointerLift: { value: 0.62, min: 0, max: 2.0, step: 0.01 },
-    particleClickBurst: { value: 0.85, min: 0, max: 2.5, step: 0.01 },
+    particleClickBurst: { value: mobile ? 0.45 : 0.65, min: 0, max: 2.5, step: 0.01 },
     particleBurstDecay: { value: 0.06, min: 0.01, max: 0.2, step: 0.005 },
   });
+
+  const particleModeColors = useControls("Particle Colors / Per Cistern", {
+    "01 Basilica": folder({
+      basilicaParticleA: activeMode?.particleA || "#ffe0a3",
+      basilicaParticleB: "#7fffee",
+      basilicaParticleC: "#ff8d3a",
+    }),
+    "02 Binbirdirek": folder({
+      binbirdirekParticleA: "#63fff0",
+      binbirdirekParticleB: "#dffffa",
+      binbirdirekParticleC: "#68ff9a",
+    }),
+    "03 Gülhane": folder({
+      gulhaneParticleA: "#57c9ff",
+      gulhaneParticleB: "#d7f7ff",
+      gulhaneParticleC: "#7fffee",
+    }),
+    "04 Şerefiye": folder({
+      serefiyeParticleA: "#b277ff",
+      serefiyeParticleB: "#f2e2ff",
+      serefiyeParticleC: "#7fffee",
+    }),
+    "05 Fildamı": folder({
+      fildamiParticleA: "#fff1c7",
+      fildamiParticleB: "#ffffff",
+      fildamiParticleC: "#68ff9a",
+    }),
+  });
+
+  const particleModeKey = activeMode?.id || "basilica";
+  const activeParticleA = particleModeColors[`${particleModeKey}ParticleA`] || activeMode?.particleA || particleColorA;
+  const activeParticleB = particleModeColors[`${particleModeKey}ParticleB`] || activeMode?.particleB || particleColorB;
+  const activeParticleC = particleModeColors[`${particleModeKey}ParticleC`] || activeMode?.particleC || particleColorC;
 
   useEffect(() => {
     burstRef.current = Math.max(burstRef.current, particleClickBurst * 1.15);
@@ -1699,9 +2019,9 @@ function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 
         uPulse: { value: particlePulse },
         uFadeBottom: { value: particleFadeBottom },
         uFadeTop: { value: particleFadeTop },
-        uColorA: { value: new THREE.Color(activeMode?.particleA || particleColorA) },
-        uColorB: { value: new THREE.Color(activeMode?.particleB || particleColorB) },
-        uColorC: { value: new THREE.Color(activeMode?.particleC || particleColorC) },
+        uColorA: { value: new THREE.Color(activeParticleA) },
+        uColorB: { value: new THREE.Color(activeParticleB) },
+        uColorC: { value: new THREE.Color(activeParticleC) },
         uPointer: { value: new THREE.Vector2(0, 0) },
         uInteraction: { value: 0 },
         uPointerStrength: { value: particlePointerStrength },
@@ -1866,9 +2186,9 @@ function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 
     material.uniforms.uPulse.value = particlePulse;
     material.uniforms.uFadeBottom.value = particleFadeBottom;
     material.uniforms.uFadeTop.value = particleFadeTop;
-    material.uniforms.uColorA.value.set(activeMode?.particleA || particleColorA);
-    material.uniforms.uColorB.value.set(activeMode?.particleB || particleColorB);
-    material.uniforms.uColorC.value.set(activeMode?.particleC || particleColorC);
+    material.uniforms.uColorA.value.set(activeParticleA);
+    material.uniforms.uColorB.value.set(activeParticleB);
+    material.uniforms.uColorC.value.set(activeParticleC);
     material.uniforms.uPointer.value.copy(pointerUniformRef.current);
     material.uniforms.uInteraction.value = particleInteractionEnabled
       ? hoverStrengthRef.current
@@ -2059,24 +2379,29 @@ function BrokenForegroundStones() {
   });
 
   const stones = useMemo(() => {
+    const seeded = (n) => {
+      const v = Math.sin((n + 907) * 51.731) * 34123.123;
+      return v - Math.floor(v);
+    };
+
     return Array.from({ length: 14 }, (_, i) => {
       const side = i % 2 === 0 ? -1 : 1;
 
       return {
         position: [
-          side * (3.2 + Math.random() * 3.0),
+          side * (3.2 + seeded(i * 10 + 1) * 3.0),
           -0.08,
-          -0.9 - Math.random() * 3.8,
+          -0.9 - seeded(i * 10 + 2) * 3.8,
         ],
         scale: [
-          0.22 + Math.random() * 0.34,
-          0.055 + Math.random() * 0.1,
-          0.2 + Math.random() * 0.38,
+          0.22 + seeded(i * 10 + 3) * 0.34,
+          0.055 + seeded(i * 10 + 4) * 0.1,
+          0.2 + seeded(i * 10 + 5) * 0.38,
         ],
         rotation: [
-          Math.random() * 0.25,
-          Math.random() * Math.PI,
-          Math.random() * 0.22,
+          seeded(i * 10 + 6) * 0.25,
+          seeded(i * 10 + 7) * Math.PI,
+          seeded(i * 10 + 8) * 0.22,
         ],
       };
     });
@@ -2783,11 +3108,11 @@ function PortalArchModel({ progress = 0, activeMode = CRYSTAL_MODES[0] }) {
     portalColor: '#63fff0',
     portalDeepColor: '#031d22',
     portalHighlightColor: '#b8fff8',
-    surfaceOpacity: { value: 0.78, min: 0, max: 2, step: 0.01 },
-    edgeBoost: { value: 0.72, min: 0, max: 3, step: 0.01 },
-    coreDarkness: { value: 0.86, min: 0, max: 1, step: 0.01 },
-    mistOpacity: { value: 0.22, min: 0, max: 1.5, step: 0.01 },
-    portalLight: { value: 0.95, min: 0, max: 8, step: 0.05 },
+    surfaceOpacity: { value: 0.62, min: 0, max: 2, step: 0.01 },
+    edgeBoost: { value: 0.42, min: 0, max: 3, step: 0.01 },
+    coreDarkness: { value: 0.72, min: 0, max: 1, step: 0.01 },
+    mistOpacity: { value: 0.12, min: 0, max: 1.5, step: 0.01 },
+    portalLight: { value: 0.72, min: 0, max: 8, step: 0.05 },
     archLight: { value: 0.38, min: 0, max: 6, step: 0.05 },
   });
 
@@ -3031,9 +3356,10 @@ function CrystalClickWaterRipple({
   activeMode = CRYSTAL_MODES[0],
   modePulseKey = 0,
 }) {
+  const softDisc = useRef();
   const ringA = useRef();
   const ringB = useRef();
-  const glow = useRef();
+  const ringC = useRef();
   const startTimeRef = useRef(-999);
   const pendingRef = useRef(false);
 
@@ -3051,41 +3377,44 @@ function CrystalClickWaterRipple({
     }
 
     const age = t - startTimeRef.current;
-    const alive = age >= 0 && age < 2.2;
-    const color = activeMode?.color || "#7fffee";
+    const duration = 2.35;
+    const alive = age >= 0 && age < duration;
+    const baseColor = activeMode?.color || "#7fffee";
+    const accentColor = activeMode?.particleB || "#dffffa";
 
-    const updateRing = (mesh, delay, baseScale, maxScale, opacity) => {
+    const updateRing = (mesh, delay, startScale, endScale, opacity, color, spin = 0) => {
       if (!mesh) return;
-
       const localAge = age - delay;
       const visible = alive && localAge >= 0;
-      const progress = THREE.MathUtils.clamp(localAge / 1.65, 0, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const fade = Math.pow(1 - progress, 1.55);
-
+      const progress = THREE.MathUtils.clamp(localAge / 1.85, 0, 1);
+      const eased = 1.0 - Math.pow(1.0 - progress, 2.3);
+      const fade = Math.pow(1.0 - progress, 1.8);
       mesh.visible = visible;
-      mesh.scale.setScalar(THREE.MathUtils.lerp(baseScale, maxScale, eased));
+      mesh.scale.setScalar(THREE.MathUtils.lerp(startScale, endScale, eased));
       mesh.material.color.set(color);
       mesh.material.opacity = visible ? opacity * fade : 0;
+      mesh.rotation.z = spin === 0 ? 0 : t * spin;
     };
 
-    updateRing(ringA.current, 0.0, 0.42, 4.25, 0.42);
-    updateRing(ringB.current, 0.18, 0.25, 3.55, 0.24);
+    updateRing(ringA.current, 0.0, 0.72, 2.95, 0.20, baseColor, 0.05);
+    updateRing(ringB.current, 0.16, 0.62, 3.55, 0.12, accentColor, -0.045);
+    updateRing(ringC.current, 0.34, 0.54, 4.15, 0.08, baseColor, 0.025);
 
-    if (glow.current) {
-      const progress = THREE.MathUtils.clamp(age / 1.35, 0, 1);
-      const fade = alive ? Math.pow(1 - progress, 2.0) : 0;
-      glow.current.visible = alive;
-      glow.current.material.color.set(color);
-      glow.current.material.opacity = 0.11 * fade;
-      glow.current.scale.setScalar(1.0 + progress * 1.85);
+    if (softDisc.current) {
+      const progress = THREE.MathUtils.clamp(age / 1.45, 0, 1);
+      const eased = 1.0 - Math.pow(1.0 - progress, 2.0);
+      const fade = alive ? Math.pow(1.0 - progress, 1.95) : 0;
+      softDisc.current.visible = alive;
+      softDisc.current.material.color.set(baseColor);
+      softDisc.current.material.opacity = 0.055 * fade;
+      softDisc.current.scale.setScalar(THREE.MathUtils.lerp(0.75, 2.35, eased));
     }
   });
 
   return (
     <group position={[0, -0.238, -5.65]} renderOrder={1200}>
-      <mesh ref={glow} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
-        <circleGeometry args={[1.15, 96]} />
+      <mesh ref={softDisc} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+        <circleGeometry args={[1.0, 128]} />
         <meshBasicMaterial
           color={activeMode?.color || "#7fffee"}
           transparent
@@ -3097,7 +3426,7 @@ function CrystalClickWaterRipple({
       </mesh>
 
       <mesh ref={ringA} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
-        <ringGeometry args={[0.47, 0.5, 128]} />
+        <ringGeometry args={[0.58, 0.602, 160]} />
         <meshBasicMaterial
           color={activeMode?.color || "#7fffee"}
           transparent
@@ -3109,9 +3438,21 @@ function CrystalClickWaterRipple({
       </mesh>
 
       <mesh ref={ringB} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
-        <ringGeometry args={[0.38, 0.405, 128]} />
+        <ringGeometry args={[0.46, 0.478, 160]} />
         <meshBasicMaterial
           color={activeMode?.particleB || "#dffffa"}
+          transparent
+          opacity={0}
+          depthWrite={false}
+          depthTest={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
+      <mesh ref={ringC} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+        <ringGeometry args={[0.34, 0.352, 160]} />
+        <meshBasicMaterial
+          color={activeMode?.color || "#7fffee"}
           transparent
           opacity={0}
           depthWrite={false}
@@ -3122,7 +3463,6 @@ function CrystalClickWaterRipple({
     </group>
   );
 }
-
 
 
 
@@ -3289,15 +3629,17 @@ export default function CisternSceneLab({
   showLabel = true,
   showLeva = false,
 } = {}) {
+  const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")));
+
   const { autoCamera, exposure, bloom, vignette, fogNear, fogFar, dprMax } =
     useControls("Scene", {
       autoCamera: true,
       exposure: { value: 1.18, min: 0.1, max: 2.4, step: 0.01 },
-      bloom: { value: 0.54, min: 0, max: 2, step: 0.01 },
+      bloom: { value: mobile ? 0.38 : 0.48, min: 0, max: 2, step: 0.01 },
       vignette: { value: 0.48, min: 0, max: 1, step: 0.01 },
       fogNear: { value: 8.4, min: 0, max: 25, step: 0.1 },
       fogFar: { value: 38, min: 5, max: 90, step: 0.5 },
-      dprMax: { value: 1.05, min: 0.75, max: 1.6, step: 0.05 },
+      dprMax: { value: mobile ? 1.0 : 1.18, min: 0.75, max: 1.6, step: 0.05 },
     });
 
   const storyControls = useControls("Story", {
@@ -3305,13 +3647,13 @@ export default function CisternSceneLab({
   });
 
   const perf = useControls("CISTERN / PERFORMANCE", {
-    postprocessing: true,
-    portalDistortion: { value: true },
+    postprocessing: { value: true },
+    portalDistortion: { value: !mobile },
     contactShadows: { value: false },
     sparkles: { value: true },
-    sparkleCount: { value: 42, min: 0, max: 140, step: 1 },
+    sparkleCount: { value: mobile ? 18 : 34, min: 0, max: 140, step: 1 },
     frameloopAlways: { value: true },
-    lowPowerDpr: { value: 1.0, min: 0.75, max: 1.35, step: 0.05 },
+    lowPowerDpr: { value: mobile ? 0.95 : 1.12, min: 0.75, max: 1.45, step: 0.05 },
   });
 
   const [activeModeIndex, setActiveModeIndex] = useState(0);
@@ -3328,7 +3670,7 @@ export default function CisternSceneLab({
 
   // Panel now opens from the crystal click itself.
   // This avoids depending on App.jsx showStory flags while keeping Leva control.
-  const storyVisible = storyControls.showStoryControl && storyPanelOpen;
+  const storyVisible = storyControls.showStoryControl && storyPanelOpen && mapProgress < 0.52;
   const labOpacity = THREE.MathUtils.clamp(visibleProgress, 0, 1);
   const rootRef = useRef(null);
 
@@ -3343,7 +3685,7 @@ export default function CisternSceneLab({
         overflow: "hidden",
         background: "#020b0a",
         opacity: labOpacity,
-        pointerEvents: mapProgress < 0.65 ? "auto" : "none",
+        pointerEvents: mapProgress < 0.52 ? "auto" : "none",
         isolation: "isolate",
         touchAction: "none",
         zIndex: 1,
@@ -3353,7 +3695,7 @@ export default function CisternSceneLab({
 
       <Canvas
         shadows={perf.contactShadows}
-        dpr={[0.85, Math.min(dprMax, perf.lowPowerDpr, typeof window !== "undefined" && window.innerWidth < 768 ? 1.0 : 1.1)]}
+        dpr={[0.85, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.95 : 1.18)]}
         eventSource={rootRef}
         eventPrefix="client"
         onCreated={(state) => {
@@ -3373,10 +3715,10 @@ export default function CisternSceneLab({
           near: 0.1,
           far: 80,
         }}
-        frameloop={labOpacity > 0.015 && mapProgress < 0.98 ? "always" : "demand"}
+        frameloop={labOpacity > 0.015 && mapProgress < 0.86 ? "always" : "demand"}
         performance={{ min: 0.55 }}
         gl={{
-          antialias: false,
+          antialias: !mobile,
           stencil: false,
           depth: true,
           alpha: false,
@@ -3384,7 +3726,7 @@ export default function CisternSceneLab({
           precision: "mediump",
         }}
       >
-        <Suspense fallback={null}>
+        <Suspense fallback={<color attach="background" args={["#020b0a"]} />}>
           <RendererSettings exposure={exposure} />
           <SceneWarmup enabled={visibleProgress > 0.02} />
 
@@ -3427,10 +3769,40 @@ export default function CisternSceneLab({
         </Suspense>
       </Canvas>
 
-      {storyVisible && <StoryOverlay activeMode={activeMode} modePulseKey={modePulseKey} />}
+      {storyVisible && <StoryOverlay activeMode={activeMode} modePulseKey={modePulseKey} onAnalyze={handleCrystalModeChange} />}
 
-      {scrollProgress > 0.28 && scrollProgress < 0.64 && !storyPanelOpen && mapProgress < 0.2 && (
-        <div className="coreAnalyzeHint"><i />CLICK TO ANALYZE CORE</div>
+      {scrollProgress > 0.035 && scrollProgress < 0.70 && mapProgress < 0.22 && (
+        <div
+          className="crystalAnalyzePrompt"
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: "9vh",
+            transform: "translateX(-50%)",
+            zIndex: 24,
+            pointerEvents: "auto",
+            padding: "10px 16px",
+            borderRadius: 999,
+            border: "1px solid rgba(127,255,238,0.32)",
+            background: "linear-gradient(90deg, rgba(4,18,18,0.18), rgba(8,34,34,0.72), rgba(4,18,18,0.18))",
+            color: "rgba(230,255,252,0.92)",
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+            fontSize: 11,
+            letterSpacing: "0.22em",
+            textShadow: "0 0 18px rgba(127,255,238,0.55)",
+            boxShadow: "0 0 32px rgba(99,255,240,0.16)",
+            cursor: "pointer",
+            userSelect: "none",
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerUp={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            handleCrystalModeChange();
+          }}
+        >
+          <i />CLICK THE CRYSTAL TO ANALYZE
+        </div>
       )}
 
       {showLabel && (
@@ -3439,7 +3811,8 @@ export default function CisternSceneLab({
         style={{
           position: "absolute",
           top: 18,
-          left: 18,
+          right: 18,
+          textAlign: "right",
           zIndex: 21,
           pointerEvents: "none",
           fontFamily:

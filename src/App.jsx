@@ -10,17 +10,9 @@ import * as THREE from "three";
 import "./App.css";
 import MapLibreCrystalMap from "./components/MapLibreCrystalMap";
 import CisternSceneLab from "./components/cinematic/CisternSceneLab";
+import PresentationAudioButton from "./components/PresentationAudioButton";
 
-/*
-  GEREKLİ DOSYALAR:
-
-  public/model/cistern_environment.glb
-  public/model/ground.glb
-  public/model/hero_crystal.glb
-  public/model/node_crystal.glb
-
-  NOT: UI panel artık PNG kullanmıyor. Buz/cam panel App.css içindeki stillerle üretiliyor.
-*/
+// FINAL REVISION: map flow, map mission overlay, intro sizing and halo controls are tuned here.
 
 const CISTERNS = [
   {
@@ -204,6 +196,17 @@ function range(value, start, end) {
   return clamp01((value - start) / (end - start));
 }
 
+
+function smoother01(value) {
+  const t = clamp01(value);
+  return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+function cinematicBell(value) {
+  const t = clamp01(value);
+  return Math.sin(t * Math.PI);
+}
+
 function smooth01(value) {
   const t = clamp01(value);
   return t * t * (3 - 2 * t);
@@ -216,22 +219,30 @@ function eachMaterial(material, callback) {
 
 function useScrollProgress() {
   const [scroll, setScroll] = useState(0);
+  const rafRef = useRef(0);
 
   useEffect(() => {
     window.scrollTo(0, 0);
 
-    function update() {
+    function readScroll() {
+      rafRef.current = 0;
       const max = document.documentElement.scrollHeight - window.innerHeight;
       setScroll(max > 0 ? clamp01(window.scrollY / max) : 0);
     }
 
-    update();
-    window.addEventListener("scroll", update);
-    window.addEventListener("resize", update);
+    function requestUpdate() {
+      if (rafRef.current) return;
+      rafRef.current = requestAnimationFrame(readScroll);
+    }
+
+    readScroll();
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate, { passive: true });
 
     return () => {
-      window.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      window.removeEventListener("scroll", requestUpdate);
+      window.removeEventListener("resize", requestUpdate);
     };
   }, []);
 
@@ -1202,13 +1213,23 @@ function CrystalNode({
         position={[0, 0.35, 0.7]}
       />
 
-      {isActive && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.64, 0]}>
-          <ringGeometry args={[0.5, 0.57, 128]} />
+      {isActive && design.nodeHaloEnabled && (
+        <mesh
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[0, design.nodeHaloY, 0]}
+          scale={[design.nodeHaloScaleX, design.nodeHaloScaleY, 1]}
+        >
+          <ringGeometry
+            args={[
+              design.nodeHaloInnerRadius,
+              design.nodeHaloOuterRadius,
+              design.nodeHaloSegments,
+            ]}
+          />
           <meshBasicMaterial
             color={node.color}
             transparent
-            opacity={isHero ? 0.11 : 0.24}
+            opacity={(isHero ? design.nodeHaloHeroOpacity : design.nodeHaloOpacity) * (1 - range(scroll, design.mapStart, 1) * 0.65)}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
           />
@@ -2488,8 +2509,8 @@ function getCinematicStoryBeats(design) {
       eyebrow: "ISTANBUL / 2556",
       lines: [
         ["The city has ", { text: "run out of water", strong: true }, "."],
-        ["Below the streets, the old ", { text: "cisterns", strong: true }, " begin to react."],
-        [{ text: "Crystal energy", strong: true }, " becomes the last source of light."],
+        ["Below the streets,"],
+        ["old ", { text: "cisterns", strong: true }, " begin to react."],
       ],
     },
     {
@@ -2499,9 +2520,9 @@ function getCinematicStoryBeats(design) {
       align: "left",
       eyebrow: "ACT 01 / UNDERGROUND REACTION",
       lines: [
-        ["What once stored water now stores ", { text: "pressure", strong: true }, "."],
-        [{ text: "Minerals", strong: true }, ", darkness and residual humidity"],
-        ["enter a new crystalline phase."],
+        ["Minerals, pressure and darkness"],
+        ["form a new ", { text: "crystalline phase", strong: true }, "."],
+        ["The lost water becomes a signal."],
       ],
     },
     {
@@ -2511,9 +2532,9 @@ function getCinematicStoryBeats(design) {
       align: "right",
       eyebrow: "ACT 02 / ENERGY CORE",
       lines: [
-        ["The first core awakens inside the cistern."],
-        ["It does not create water;"],
-        ["it converts reaction into ", { text: "electric light", strong: true }, "."],
+        ["The crystal does not make water."],
+        ["It converts the cistern reaction"],
+        ["into ", { text: "electrical light", strong: true }, "."],
       ],
     },
     {
@@ -2523,21 +2544,21 @@ function getCinematicStoryBeats(design) {
       align: "left",
       eyebrow: "ACT 03 / TRANSMISSION",
       lines: [
-        ["The core opens a ", { text: "passage", strong: true }, "."],
-        ["Energy leaves the underground chamber"],
-        ["and begins to move through the city grid."],
+        ["The portal opens."],
+        ["Energy leaves the chamber"],
+        ["and enters the ", { text: "underground grid", strong: true }, "."],
       ],
     },
     {
       id: "network-map",
       start: design.storyMapStart,
-      end: design.storyMapEnd,
+      end: Math.min(design.storyMapEnd, design.mapVisualStart + 0.055),
       align: "left",
-      eyebrow: "ACT 04 / CRYSTALLINE NETWORK",
+      eyebrow: "ACT 04 / NETWORK INTERFACE",
       lines: [
-        [{ text: "Five cisterns", strong: true }, " respond beneath Istanbul."],
-        ["Each one carries a different function"],
-        ["inside the hidden power system."],
+        [{ text: "Five cistern nodes", strong: true }, " wake beneath Istanbul."],
+        ["Connect them to reveal"],
+        ["the city's hidden ", { text: "power circuit", strong: true }, "."],
       ],
     },
   ];
@@ -2552,75 +2573,109 @@ function getBeatVisibility(scroll, beat, fadeSize) {
 }
 
 function CinematicStoryLayer({ scroll, design }) {
-  const [hovering, setHovering] = useState(false);
-  const containerRef = useRef(null);
-  const beats = useMemo(() => getCinematicStoryBeats(design), [
-    design.storyDescentStart,
-    design.storyDescentEnd,
-    design.storyReactionStart,
-    design.storyReactionEnd,
-    design.storyCoreStart,
-    design.storyCoreEnd,
-    design.storyPortalStart,
-    design.storyPortalEnd,
-    design.storyMapStart,
-    design.storyMapEnd,
-  ]);
+  const beats = useMemo(() => getCinematicStoryBeats(design), [design]);
 
-  const fadeSize = design.storyFadeSize ?? 0.035;
-  const active = beats
-    .map((beat) => ({ beat, opacity: getBeatVisibility(scroll, beat, fadeSize) }))
-    .sort((a, b) => b.opacity - a.opacity)[0];
+  const active = useMemo(() => {
+    const fade = Math.max(0.085, Number(design.storyFadeSize ?? 0.105));
 
-  if (!design.storyEnabled || !active || active.opacity <= 0.015) return null;
+    const candidates = beats
+      .map((beat, index) => {
+        const start = Number(beat.start ?? 0);
+        const end = Number(beat.end ?? start + 0.16);
+        const duration = Math.max(0.001, end - start);
 
-  const { beat, opacity } = active;
-  const local = range(scroll, beat.start, beat.end);
-  const drift = (0.5 - local) * (design.storyDrift ?? 18);
-  const alignRight = beat.align === "right";
+        const rawLocal = range(scroll, start - fade, end + fade);
+        const local = clamp01(rawLocal);
+        const enter = smoother01(range(scroll, start - fade * 0.9, start + fade * 0.95));
+        const exit = 1 - smoother01(range(scroll, end - fade * 0.95, end + fade * 0.95));
+        const opacity = clamp01(enter * exit);
 
-  function handleMove(event) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-    event.currentTarget.style.setProperty("--storyHoverX", `${x}%`);
-    event.currentTarget.style.setProperty("--storyHoverY", `${y}%`);
-  }
+        const storyLocal = clamp01((scroll - start) / duration);
+        const cinematic = cinematicBell(storyLocal);
+        const entering = 1 - enter;
+        const leaving = 1 - exit;
+
+        const driftY = entering * 30 - leaving * 22;
+        const driftX = beat.align === "right" ? entering * 18 - leaving * 14 : -entering * 18 + leaving * 14;
+        const blur = (entering + leaving) * 10;
+        const scale = 0.982 + opacity * 0.018 + cinematic * 0.002;
+
+        return {
+          beat,
+          index,
+          opacity,
+          local,
+          storyLocal,
+          driftX,
+          driftY,
+          blur,
+          scale,
+          score: opacity,
+        };
+      })
+      .filter((item) => item.opacity > 0.012)
+      .sort((a, b) => b.score - a.score);
+
+    return candidates[0] || null;
+  }, [beats, design, scroll]);
+
+  if (!active) return null;
+
+  const { beat, opacity, storyLocal, driftX, driftY, blur, scale } = active;
+  const isMapBeat = beat.id === "network-map";
+  const mapBoost = isMapBeat ? design.storyMapOpacityBoost || 1 : 1;
+  const finalOpacity = clamp01(opacity * (design.storyOpacity || 0.92) * mapBoost);
+  const lineProgress = smoother01(range(finalOpacity, 0.08, 0.82));
 
   return (
     <div
-      className={`cinematicStoryLayer ${alignRight ? "right" : "left"}`}
+      key={beat.id}
+      className={`cinematicStoryLayer ref-smooth-story ${beat.align === "right" ? "right" : "left"}`}
       style={{
-        "--storyX": `${design.storyX}vw`,
-        "--storyY": `${design.storyY}vh`,
-        "--storyOpacity": opacity * design.storyOpacity,
-        "--storyMaxWidth": `${design.storyMaxWidth}px`,
-        "--storyTitleSize": `${design.storyTitleSize}px`,
-        "--storyKickerSize": `${design.storyKickerSize}px`,
-        "--storyGlow": design.storyGlow,
-        "--storyBlur": `${design.storyBlur}px`,
-        "--storyAccent": design.storyAccent,
-        "--storyColor": design.storyColor,
-        "--storyMuted": design.storyMutedColor,
-        "--storyGlitch": hovering ? design.storyHoverGlitch : design.storyGlitch,
-        transform: `translate3d(${alignRight ? -drift : drift}px, ${Math.sin(local * Math.PI) * -8}px, 0)`,
+        "--storyX": `${design.storyX || 4.2}vw`,
+        "--storyY": `${design.storyY || 34}vh`,
+        "--storyMaxWidth": `${design.storyMaxWidth || 880}px`,
+        "--storyAccent": design.storyAccent || "#9ffff3",
+        "--storyColor": design.storyColor || "rgba(226, 242, 238, 0.82)",
+        "--storyTitleSize": `${design.storyTitleSize || 52}px`,
+        "--storyKickerSize": `${design.storyKickerSize || 10}px`,
+        "--storyOpacityNow": finalOpacity,
+        "--storyLocal": storyLocal,
+        "--lineProgress": lineProgress,
+        opacity: finalOpacity,
+        filter: `blur(${Math.max(0, blur * 0.18)}px)`,
+        transform: `translate3d(${driftX * 0.24}px, ${driftY * 0.34}px, 0) scale(${scale})`,
+        pointerEvents: "none",
       }}
     >
-      <div
-        ref={containerRef}
-        className={`cinematicStoryCard ${hovering ? "is-hovering" : ""}`}
-        onPointerEnter={() => setHovering(true)}
-        onPointerLeave={() => setHovering(false)}
-        onPointerMove={handleMove}
-      >
-        <div className="cinematicStoryKicker" data-text={beat.eyebrow}>
+      <div className="cinematicStoryCard ref-smooth-story-card">
+        <div className="cinematicStoryKicker">
           {beat.eyebrow}
         </div>
 
-        <div className="cinematicStoryText" data-text={beat.lines.map((line) => line.map((t) => (typeof t === "string" ? t : t.text)).join("")).join(" ")}>
-          {beat.lines.map((line, index) => (
-            <div className="cinematicStoryLine" key={`${beat.id}-${index}`}>
-              <RichStoryLine tokens={line} />
+        <div className="cinematicStoryText">
+          {beat.lines.map((line, lineIndex) => (
+            <div
+              className="cinematicStoryLine"
+              key={`${beat.id}-${lineIndex}`}
+              style={{
+                "--lineIndex": lineIndex,
+                "--lineDelay": `${lineIndex * 78}ms`,
+              }}
+            >
+              <span className="cinematicStoryLineText">
+                {line.map((part, partIndex) => {
+                  if (typeof part === "string") {
+                    return <span key={partIndex}>{part}</span>;
+                  }
+
+                  return (
+                    <span key={partIndex} className={part.strong ? "is-strong" : "is-muted"}>
+                      {part.text}
+                    </span>
+                  );
+                })}
+              </span>
             </div>
           ))}
         </div>
@@ -2628,7 +2683,6 @@ function CinematicStoryLayer({ scroll, design }) {
     </div>
   );
 }
-
 
 function getGuideBeats(design) {
   return [
@@ -2643,8 +2697,8 @@ function getGuideBeats(design) {
       id: "analyze",
       start: design.guideAnalyzeStart,
       end: design.guideAnalyzeEnd,
-      label: "CLICK THE CRYSTAL",
-      detail: "Analyze the active energy core.",
+      label: "CLICK THE CRYSTAL CORE",
+      detail: "Use the glowing analyze prompt or click the crystal core to switch crystals.",
     },
     {
       id: "portal",
@@ -2657,8 +2711,8 @@ function getGuideBeats(design) {
       id: "map",
       start: design.guideMapStart,
       end: design.guideMapEnd,
-      label: "ACTIVATE THE CISTERNS",
-      detail: "Build the crystalline power network.",
+      label: "CLICK CISTERN NODES",
+      detail: "Wake each point; blue buildings are surface echoes of the hidden signal.",
     },
   ];
 }
@@ -2687,6 +2741,7 @@ function CinematicGuideLayer({ scroll, design }) {
     <div
       className="cinematicGuideLayer"
       style={{
+        pointerEvents: "none",
         "--guideOpacity": active.opacity * design.guideOpacity,
         "--guideAccent": design.storyAccent,
         "--guideX": `${design.guideX}vw`,
@@ -2699,6 +2754,122 @@ function CinematicGuideLayer({ scroll, design }) {
         <small>{active.beat.detail}</small>
       </div>
     </div>
+  );
+}
+
+
+function MapMissionOverlay({ scroll, design, activatedNodes }) {
+  if (!design.mapMissionEnabled) return null;
+
+  // This panel belongs to the final map interface.
+  // It fades in when the map starts, then stays visible permanently.
+  const mapStart = Math.min(design.mapMissionStart, design.mapVisualStart ?? design.mapMissionStart);
+  const enter = smooth01(range(scroll, mapStart, design.mapMissionFull));
+  const opacity = scroll >= design.mapMissionFull
+    ? design.mapMissionOpacity
+    : clamp01(enter * design.mapMissionOpacity);
+
+  if (opacity <= 0.015) return null;
+
+  const activatedCount = activatedNodes.length;
+  const total = CISTERNS.length;
+  const complete = activatedCount >= total;
+
+  return (
+    <aside
+      className="mapMissionOverlay persistent"
+      style={{
+        position: "absolute",
+        left: `${design.mapMissionX}vw`,
+        bottom: `${design.mapMissionY}vh`,
+        top: "auto",
+        zIndex: 38,
+        width: `${Math.min(design.mapMissionWidth, 500)}px`,
+        maxWidth: "calc(100vw - 48px)",
+        pointerEvents: "none",
+        opacity,
+        transform: `translate3d(0, ${(1 - enter) * 14}px, 0)`,
+        color: design.storyColor,
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+        filter: `drop-shadow(0 0 ${Math.max(10, design.mapMissionGlow * 0.45)}px ${design.storyAccent}28)`,
+      }}
+    >
+      <div
+        style={{
+          border: `1px solid ${design.storyAccent}30`,
+          borderRadius: 18,
+          padding: "16px 18px 14px",
+          background: "#020607",
+          backdropFilter: "blur(14px)",
+          boxShadow: "0 16px 44px rgba(0,0,0,0.26), inset 0 0 0 1px rgba(255,255,255,0.025)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 14,
+            marginBottom: 10,
+            fontSize: 9,
+            letterSpacing: "0.22em",
+            color: design.storyAccent,
+            textTransform: "uppercase",
+          }}
+        >
+          <span>NETWORK INTERFACE</span>
+          <span>{activatedCount} / {total} ONLINE</span>
+        </div>
+
+        <div
+          style={{
+            fontSize: `${Math.max(22, design.mapMissionTitleSize - 3)}px`,
+            lineHeight: 1.04,
+            letterSpacing: "-0.04em",
+            color: "rgba(240,248,246,0.94)",
+            marginBottom: 10,
+            fontWeight: 600,
+          }}
+        >
+          {complete ? "The underground circuit is complete." : "Five cistern nodes are waiting on the map."}
+        </div>
+
+        <p
+          style={{
+            margin: 0,
+            fontSize: `${Math.max(11, design.mapMissionBodySize - 0.5)}px`,
+            lineHeight: 1.56,
+            color: "rgba(208,224,220,0.64)",
+          }}
+        >
+          Move across Istanbul to read the blue surface scans. Click each cistern node to reconnect the hidden crystalline circuit beneath the city.
+        </p>
+
+        <div
+          style={{
+            marginTop: 14,
+            display: "grid",
+            gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+            gap: 6,
+          }}
+        >
+          {CISTERNS.map((node) => {
+            const active = activatedNodes.includes(node.id);
+            return (
+              <span
+                key={node.id}
+                style={{
+                  height: 4,
+                  borderRadius: 999,
+                  background: active ? node.color : "rgba(180,255,246,0.12)",
+                  boxShadow: active ? `0 0 10px ${node.color}` : "none",
+                  transition: "220ms ease",
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </aside>
   );
 }
 
@@ -2832,6 +3003,12 @@ function IntroMinimalInterface({ introOpacity }) {
         </div>
       </nav>
 
+      <div className="introOpeningTitle">
+        <span>ISTANBUL / YEAR 2556</span>
+        <b>THE CITY HAS RUN OUT OF WATER.</b>
+        <small>Reservoirs have fallen silent. Beneath the streets, forgotten cisterns begin to react — not as water stores, but as a buried crystalline network waking under pressure.</small>
+      </div>
+
       <div className="cinematicScrollHint">
         <span />
         <b>SCROLL TO DESCEND</b>
@@ -2903,42 +3080,36 @@ function StoryOverlay({ scroll, current, fullNetwork }) {
       if (!panelRef.current) return;
 
       const title = panelRef.current.querySelector(".storyTitle");
-      let split;
 
+      // Readability fix: do not SplitType the ACT title anymore.
+      // The previous per-character animation could leave some chars/words
+      // semi-transparent during scroll/HMR, which made the ACT copy look broken.
       if (title) {
-        split = new SplitType(title, { types: "words,chars" });
+        title.textContent = act.title;
+        gsap.set(title, { autoAlpha: 1, clearProps: "filter,transform" });
       }
+
+      gsap.set(
+        panelRef.current.querySelectorAll(
+          ".storyTitle, .storyLead, .storyBody, .storyDataLine, .storyMeta, .storyMeta span, .storyMeta i"
+        ),
+        { autoAlpha: 1, filter: "none" }
+      );
 
       gsap.fromTo(
         panelRef.current,
-        { autoAlpha: 0, x: -26 },
-        { autoAlpha: panelOpacity, x: 0, duration: 0.52, ease: "power3.out" }
+        { autoAlpha: 0, x: -22 },
+        { autoAlpha: panelOpacity, x: 0, duration: 0.42, ease: "power3.out" }
       );
-
-      if (split?.chars?.length) {
-        gsap.fromTo(
-          split.chars,
-          { yPercent: 80, autoAlpha: 0, filter: "blur(8px)" },
-          {
-            yPercent: 0,
-            autoAlpha: 1,
-            filter: "blur(0px)",
-            duration: 0.62,
-            ease: "power3.out",
-            stagger: 0.012,
-          },
-          0
-        );
-      }
 
       gsap.fromTo(
         panelRef.current.querySelectorAll(".storyLead, .storyBody, .storyDataLine"),
-        { y: 16, autoAlpha: 0 },
-        { y: 0, autoAlpha: 1, duration: 0.44, ease: "power2.out", stagger: 0.06, delay: 0.08 }
+        { y: 10, autoAlpha: 0.72 },
+        { y: 0, autoAlpha: 1, duration: 0.34, ease: "power2.out", stagger: 0.035, delay: 0.04 }
       );
 
       return () => {
-        if (split) split.revert();
+        gsap.killTweensOf(panelRef.current);
       };
     },
     { dependencies: [act.id], scope: panelRef }
@@ -3084,6 +3255,412 @@ function RainGlassLayer({ scroll, design }) {
 
 
 
+
+function AppRuntimeVisualFixes() {
+  return (
+    <style>{`
+      .cinematicStoryLayer {
+        pointer-events: auto;
+      }
+
+      .cinematicStoryCard {
+        transition: filter 180ms ease, transform 180ms ease, opacity 180ms ease;
+      }
+
+      .cinematicStoryCard::before {
+        opacity: 0.72 !important;
+      }
+
+      .cinematicStoryText,
+      .cinematicStoryLine,
+      .cinematicStoryLineText,
+      .cinematicStoryLineText span {
+        color: rgba(246, 255, 252, 0.96) !important;
+        opacity: 1 !important;
+        text-shadow:
+          0 2px 18px rgba(0,0,0,0.88),
+          0 0 18px rgba(127,255,238,0.18) !important;
+      }
+
+      .cinematicStoryLineText .is-muted {
+        color: rgba(230, 255, 250, 0.84) !important;
+        opacity: 1 !important;
+      }
+
+      .cinematicStoryLineText .is-strong {
+        color: var(--storyAccent, #9ffff3) !important;
+        opacity: 1 !important;
+        text-shadow:
+          0 2px 18px rgba(0,0,0,0.9),
+          0 0 22px color-mix(in srgb, var(--storyAccent, #9ffff3) 44%, transparent) !important;
+      }
+
+      .cinematicStoryKicker {
+        opacity: 0.96 !important;
+        color: var(--storyAccent, #9ffff3) !important;
+      }
+
+      .cinematicStoryCard.is-hovering .cinematicStoryText {
+        filter: blur(0.55px);
+      }
+
+      .cinematicStoryCard.is-hovering .cinematicStoryLineText .is-strong {
+        filter: blur(0);
+      }
+
+      .cinematicStoryCard.is-hovering {
+        transform: translate3d(0, -2px, 0);
+      }
+
+      .cinematicGuideLayer {
+        right: clamp(22px, calc(100vw - var(--guideX) - 280px), 34vw);
+        left: auto !important;
+        text-align: right;
+        pointer-events: none;
+      }
+
+      .cinematicGuideLayer > div {
+        align-items: flex-end;
+      }
+
+      /* Final readability pass for the main ACT story boxes.
+         Some letters/words were staying too transparent because the title is
+         split into spans by SplitType and the site CSS also uses muted colors. */
+      .storyOverlay {
+        pointer-events: none;
+      }
+
+      .storyPanel {
+        opacity: 1 !important;
+        filter: none !important;
+        background: linear-gradient(135deg, rgba(2, 8, 10, 0.82), rgba(5, 22, 26, 0.48)) !important;
+        border: 1px solid rgba(170, 255, 245, 0.22) !important;
+        box-shadow:
+          0 24px 95px rgba(0, 0, 0, 0.52),
+          inset 0 0 0 1px rgba(255,255,255,0.055),
+          0 0 42px rgba(120,255,236,0.10) !important;
+        backdrop-filter: blur(14px) !important;
+      }
+
+      .storyPanel,
+      .storyPanel * {
+        text-rendering: geometricPrecision;
+      }
+
+      .storyTitle,
+      .storyTitle .word,
+      .storyTitle .char {
+        color: rgba(248, 255, 253, 0.985) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        filter: none !important;
+        text-shadow:
+          0 3px 22px rgba(0,0,0,0.95),
+          0 0 24px rgba(145,255,240,0.16) !important;
+      }
+
+      .storyLead {
+        color: rgba(244, 255, 252, 0.94) !important;
+        opacity: 1 !important;
+        filter: none !important;
+        text-shadow: 0 2px 18px rgba(0,0,0,0.82) !important;
+      }
+
+      .storyBody {
+        color: rgba(228, 255, 250, 0.88) !important;
+        opacity: 1 !important;
+        filter: none !important;
+        text-shadow: 0 2px 18px rgba(0,0,0,0.78) !important;
+      }
+
+      .storyMeta span,
+      .storyMeta i,
+      .storyDataLine span,
+      .storyDataLine b,
+      .storyNextHint span,
+      .storyNextHint b {
+        color: rgba(226, 255, 250, 0.86) !important;
+        opacity: 1 !important;
+        filter: none !important;
+        text-shadow: 0 2px 14px rgba(0,0,0,0.8) !important;
+      }
+
+      .storyMeta span,
+      .storyDataLine b {
+        color: rgba(127, 255, 238, 0.96) !important;
+      }
+
+      .storyRoles,
+      .storyRoles * {
+        opacity: 1 !important;
+      }
+
+      .storyRole b {
+        color: rgba(245,255,252,0.96) !important;
+      }
+
+      .storyRole i {
+        color: rgba(220,255,250,0.78) !important;
+      }
+
+      .storyPanel:hover .storyTitle,
+      .storyPanel:hover .storyLead,
+      .storyPanel:hover .storyBody {
+        filter: blur(0.45px) !important;
+        transition: filter 180ms ease, text-shadow 180ms ease;
+      }
+
+
+      /* V7 hard fix: ACT panel text must never become ghosted. */
+      .storyOverlay,
+      .storyOverlay * {
+        mix-blend-mode: normal !important;
+      }
+
+      .storyPanel {
+        min-width: min(520px, calc(100vw - 44px)) !important;
+      }
+
+      .storyTitle {
+        display: block !important;
+        font-weight: 500 !important;
+        letter-spacing: -0.035em !important;
+        line-height: 0.94 !important;
+        color: #f7fffd !important;
+        opacity: 1 !important;
+        filter: none !important;
+      }
+
+      .storyTitle span,
+      .storyTitle div,
+      .storyTitle .word,
+      .storyTitle .char,
+      .storyTitle [style] {
+        color: #f7fffd !important;
+        opacity: 1 !important;
+        filter: none !important;
+        transform: none !important;
+        visibility: visible !important;
+      }
+
+      .storyLead,
+      .storyLead *,
+      .storyBody,
+      .storyBody * {
+        color: rgba(244,255,252,0.96) !important;
+        opacity: 1 !important;
+        filter: none !important;
+        visibility: visible !important;
+      }
+
+      .storyBody {
+        color: rgba(232,255,250,0.92) !important;
+        font-weight: 420 !important;
+      }
+
+      .storyMeta,
+      .storyMeta *,
+      .storyDataLine,
+      .storyDataLine *,
+      .storyNextHint,
+      .storyNextHint * {
+        opacity: 1 !important;
+        filter: none !important;
+      }
+
+      /* V8 hard fix: the screenshot text is the cinematic ACT layer, not the old storyPanel.
+         Your App.css had a later rule: span:not(.is-strong) = transparent 38%,
+         so normal words stayed gray. These selectors are intentionally stronger. */
+      .viewport .cinematicStoryLayer,
+      .viewport .cinematicStoryLayer * {
+        mix-blend-mode: normal !important;
+      }
+
+      .viewport .cinematicStoryLayer {
+        opacity: var(--storyOpacity) !important;
+        filter: none !important;
+        width: min(520px, calc(100vw - 96px)) !important;
+      }
+
+      .viewport .cinematicStoryLayer .cinematicStoryCard {
+        padding: 16px 20px 18px !important;
+        border-left: 1px solid rgba(150, 255, 242, 0.40) !important;
+        background:
+          linear-gradient(90deg, rgba(2, 8, 9, 0.58), rgba(2, 8, 9, 0.28) 72%, rgba(2, 8, 9, 0.04)) !important;
+        backdrop-filter: blur(7px) !important;
+        -webkit-backdrop-filter: blur(7px) !important;
+        text-shadow:
+          0 3px 18px rgba(0,0,0,0.92),
+          0 0 18px rgba(127,255,238,0.16) !important;
+      }
+
+      .viewport .cinematicStoryLayer .cinematicStoryKicker {
+        color: rgba(164, 233, 226, 0.60) !important;
+        opacity: 1 !important;
+        filter: none !important;
+        text-shadow: 0 2px 12px rgba(0,0,0,0.9), 0 0 18px rgba(127,255,238,0.28) !important;
+      }
+
+      .viewport .cinematicStoryLayer .cinematicStoryKicker::before,
+      .viewport .cinematicStoryLayer .cinematicStoryKicker::after,
+      .viewport .cinematicStoryLayer .cinematicStoryText::before,
+      .viewport .cinematicStoryLayer .cinematicStoryText::after {
+        opacity: 0 !important;
+        display: none !important;
+      }
+
+      .viewport .cinematicStoryLayer .cinematicStoryText {
+        color: rgba(238, 242, 240, 0.86) !important;
+        opacity: 1 !important;
+        filter: none !important;
+        line-height: 0.98 !important;
+        letter-spacing: -0.062em !important;
+        font-weight: 340 !important;
+        font-size: clamp(28px, 3.1vw, 46px) !important;
+      }
+
+      .viewport .cinematicStoryLayer .cinematicStoryLine,
+      .viewport .cinematicStoryLayer .cinematicStoryLineText {
+        opacity: 1 !important;
+        filter: none !important;
+        color: rgba(238, 242, 240, 0.86) !important;
+      }
+
+      .viewport .cinematicStoryLayer .cinematicStoryLineText span,
+      .viewport .cinematicStoryLayer .cinematicStoryLineText span:not(.is-strong),
+      .viewport .cinematicStoryLayer .cinematicStoryLineText .is-muted {
+        color: rgba(236, 241, 239, 0.84) !important;
+        opacity: 1 !important;
+        filter: none !important;
+        visibility: visible !important;
+        text-shadow: 0 3px 18px rgba(0,0,0,0.92) !important;
+      }
+
+      .viewport .cinematicStoryLayer .cinematicStoryLineText .is-strong {
+        color: rgba(158, 255, 242, 0.96) !important;
+        opacity: 1 !important;
+        font-weight: 560 !important;
+        filter: none !important;
+        text-shadow:
+          0 3px 18px rgba(0,0,0,0.95),
+          0 0 10px rgba(127,255,238,0.20) !important;
+      }
+
+      .viewport .cinematicStoryCard.is-hovering .cinematicStoryText,
+      .viewport .cinematicStoryCard.is-hovering .cinematicStoryLineText span,
+      .viewport .cinematicStoryCard.is-hovering .cinematicStoryLineText span:not(.is-strong) {
+        filter: blur(0.38px) saturate(1.08) !important;
+        opacity: 1 !important;
+      }
+
+      .viewport .cinematicStoryCard.is-hovering .cinematicStoryLineText .is-strong {
+        filter: blur(0) saturate(1.18) !important;
+      }
+
+      .storyNextHint b {
+        color: rgba(244,255,252,0.92) !important;
+      }
+
+      .mapMissionOverlay,
+      .mapMissionOverlay * {
+        color: rgba(246,255,252,0.96);
+      }
+
+
+      /* V31 reference typography cleanup: closer to uploaded App(1).css / App(2).jsx */
+      .viewport .cinematicStoryLayer {
+        width: min(var(--storyMaxWidth), calc(100vw - 80px)) !important;
+        opacity: var(--storyOpacity) !important;
+        filter: blur(var(--storyBlur)) !important;
+      }
+
+      .viewport .cinematicStoryLayer .cinematicStoryCard {
+        padding: 0 !important;
+        border-left: none !important;
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-shadow: none !important;
+        color: var(--storyColor) !important;
+        font-family: "Inter", "Space Grotesk", Arial, sans-serif !important;
+        text-shadow:
+          0 0 calc(34px * var(--storyGlow)) color-mix(in srgb, var(--storyAccent, #9ffff3), transparent 74%),
+          0 20px 70px rgba(0, 0, 0, 0.45) !important;
+      }
+
+      .viewport .cinematicStoryLayer .cinematicStoryKicker {
+        margin-bottom: 18px !important;
+        font-family: "Space Grotesk", Inter, Arial, sans-serif !important;
+        font-size: var(--storyKickerSize) !important;
+        letter-spacing: 0.34em !important;
+        color: color-mix(in srgb, var(--storyAccent, #9ffff3), transparent 20%) !important;
+        opacity: 1 !important;
+        text-transform: uppercase !important;
+        text-shadow: none !important;
+      }
+
+      .viewport .cinematicStoryLayer .cinematicStoryKicker::before,
+      .viewport .cinematicStoryLayer .cinematicStoryKicker::after,
+      .viewport .cinematicStoryLayer .cinematicStoryText::before,
+      .viewport .cinematicStoryLayer .cinematicStoryText::after {
+        display: block !important;
+        opacity: calc(var(--storyGlitch, 0) * 0.14) !important;
+      }
+
+      .viewport .cinematicStoryLayer .cinematicStoryText {
+        font-family: "Inter", "Space Grotesk", Arial, sans-serif !important;
+        font-size: clamp(30px, 4.15vw, var(--storyTitleSize)) !important;
+        line-height: 1.05 !important;
+        letter-spacing: -0.075em !important;
+        font-weight: 300 !important;
+        color: var(--storyColor) !important;
+        opacity: 1 !important;
+        filter: none !important;
+        text-shadow: none !important;
+      }
+
+      .viewport .cinematicStoryLayer .cinematicStoryLine,
+      .viewport .cinematicStoryLayer .cinematicStoryLineText {
+        color: var(--storyColor) !important;
+        opacity: 1 !important;
+        filter: none !important;
+        overflow: visible !important;
+      }
+
+      .viewport .cinematicStoryLayer .cinematicStoryLineText span,
+      .viewport .cinematicStoryLayer .cinematicStoryLineText span:not(.is-strong),
+      .viewport .cinematicStoryLayer .cinematicStoryLineText .is-muted {
+        color: var(--storyMuted) !important;
+        opacity: 1 !important;
+        filter: none !important;
+        visibility: visible !important;
+        text-shadow: none !important;
+      }
+
+      .viewport .cinematicStoryLayer .cinematicStoryLineText .is-strong {
+        color: var(--storyColor) !important;
+        opacity: 1 !important;
+        font-weight: 400 !important;
+        filter: none !important;
+        text-shadow:
+          0 0 12px color-mix(in srgb, var(--storyAccent, #9ffff3), transparent 46%),
+          0 0 34px color-mix(in srgb, var(--storyAccent, #9ffff3), transparent 72%) !important;
+      }
+
+      .viewport .cinematicStoryCard.is-hovering .cinematicStoryText,
+      .viewport .cinematicStoryCard.is-hovering .cinematicStoryLineText span,
+      .viewport .cinematicStoryCard.is-hovering .cinematicStoryLineText span:not(.is-strong) {
+        filter: saturate(1.08) contrast(1.02) !important;
+        opacity: 1 !important;
+      }
+
+      .viewport .cinematicStoryCard.is-hovering .cinematicStoryLineText .is-strong {
+        filter: blur(0) saturate(1.12) !important;
+      }
+    `}</style>
+  );
+}
+
 function IntroCameraRig({ design }) {
   const { camera, pointer } = useThree();
 
@@ -3172,8 +3749,8 @@ export default function App() {
       chamberStart: { value: 0.68, min: 0.1, max: 1, step: 0.005 },
       chamberEnd: { value: 0.84, min: 0.1, max: 1, step: 0.005 },
       // Map timing is now earlier and smoother so the portal section does not create dead scroll.
-      mapStart: { value: 0.86, min: 0.1, max: 1, step: 0.005 },
-      mapEnd: { value: 0.955, min: 0.2, max: 1, step: 0.005 },
+      mapStart: { value: 0.835, min: 0.1, max: 1, step: 0.005 },
+      mapEnd: { value: 0.9, min: 0.2, max: 1, step: 0.005 },
     }),
 
     "01_CAMERA": folder({
@@ -3208,15 +3785,27 @@ export default function App() {
       introSignalCoreColor: "#dffffb",
       introSignalGhostColor: "#4fb9b0",
       introSignalCoreSize: { value: 1.42, min: 0.2, max: 3.5, step: 0.01 },
-      introSignalResponseSize: { value: 0.95, min: 0.2, max: 2.5, step: 0.01 },
-      introSignalGhostSize: { value: 0.72, min: 0.1, max: 2, step: 0.01 },
+      introSignalResponseSize: { value: 1.16, min: 0.2, max: 2.5, step: 0.01 },
+      introSignalGhostSize: { value: 0.94, min: 0.1, max: 2, step: 0.01 },
       introSignalCoreIntensity: { value: 1.15, min: 0, max: 2.5, step: 0.01 },
       introSignalGhostOpacity: { value: 0.54, min: 0, max: 1, step: 0.01 },
-      introSignalTrailOpacity: { value: 0.075, min: 0, max: 0.3, step: 0.005 },
+      introSignalTrailOpacity: { value: 0.09, min: 0, max: 0.3, step: 0.005 },
       introSignalHoverPower: { value: 1.25, min: 0, max: 3, step: 0.01 },
       introSignalWaveSpeed: { value: 1.15, min: 0.1, max: 6, step: 0.01 },
       introSignalDrift: { value: 0.038, min: 0, max: 0.2, step: 0.001 },
       introSignalPullDown: { value: 0.035, min: 0, max: 2, step: 0.01 },
+    }),
+
+    "03_NODE_HALO": folder({
+      nodeHaloEnabled: true,
+      nodeHaloInnerRadius: { value: 0.36, min: 0.05, max: 2.4, step: 0.01 },
+      nodeHaloOuterRadius: { value: 0.405, min: 0.08, max: 2.8, step: 0.01 },
+      nodeHaloScaleX: { value: 1.18, min: 0.2, max: 3, step: 0.01 },
+      nodeHaloScaleY: { value: 0.62, min: 0.2, max: 3, step: 0.01 },
+      nodeHaloY: { value: -0.68, min: -2, max: 1, step: 0.01 },
+      nodeHaloOpacity: { value: 0.055, min: 0, max: 0.5, step: 0.005 },
+      nodeHaloHeroOpacity: { value: 0.035, min: 0, max: 0.5, step: 0.005 },
+      nodeHaloSegments: { value: 96, min: 16, max: 192, step: 1 },
     }),
 
     "07_INTRO_PARTICLES": folder({
@@ -3254,62 +3843,80 @@ export default function App() {
       storyX: { value: 4.2, min: 0, max: 30, step: 0.1 },
       storyY: { value: 34, min: 5, max: 80, step: 0.5 },
       storyMaxWidth: { value: 880, min: 360, max: 1400, step: 10 },
-      storyOpacity: { value: 1, min: 0, max: 1, step: 0.01 },
-      storyTitleSize: { value: 46, min: 18, max: 92, step: 1 },
+      storyOpacity: { value: 0.92, min: 0, max: 1, step: 0.01 },
+      storyTitleSize: { value: 52, min: 18, max: 92, step: 1 },
       storyKickerSize: { value: 10, min: 7, max: 18, step: 1 },
-      storyFadeSize: { value: 0.052, min: 0.008, max: 0.16, step: 0.002 },
-      storyDrift: { value: 18, min: 0, max: 80, step: 1 },
-      storyGlow: { value: 0.52, min: 0, max: 1.2, step: 0.01 },
-      storyBlur: { value: 0, min: 0, max: 8, step: 0.1 },
-      storyGlitch: { value: 0.045, min: 0, max: 1.2, step: 0.01 },
-      storyHoverGlitch: { value: 0.34, min: 0, max: 2.4, step: 0.01 },
+      storyFadeSize: { value: 0.105, min: 0.008, max: 0.16, step: 0.002 },
+      storyDrift: { value: 22, min: 0, max: 80, step: 1 },
+      storyGlow: { value: 0.2, min: 0, max: 1.2, step: 0.01 },
+      storyBlur: { value: 0.0, min: 0, max: 8, step: 0.1 },
+      storyGlitch: { value: 0, min: 0, max: 1.2, step: 0.01 },
+      storyHoverGlitch: { value: 0, min: 0, max: 2.4, step: 0.01 },
       storyAccent: "#9ffff3",
-      storyColor: "#f4fffc",
-      storyMutedColor: "rgba(244,255,252,0.58)",
+      storyColor: "rgba(226, 242, 238, 0.82)",
+      storyMutedColor: "rgba(242, 255, 252, 0.98)",
+      storyMapOpacityBoost: { value: 1.25, min: 0.5, max: 2.5, step: 0.01 },
+      storyMapGlow: { value: 0.18, min: 0, max: 1.6, step: 0.01 },
+      storyMapBlur: { value: 0, min: 0, max: 8, step: 0.1 },
 
-      storyDescentStart: { value: 0.12, min: 0.02, max: 0.42, step: 0.005 },
-      storyDescentEnd: { value: 0.285, min: 0.06, max: 0.55, step: 0.005 },
+      storyDescentStart: { value: 0.125, min: 0.02, max: 0.42, step: 0.005 },
+      storyDescentEnd: { value: 0.33, min: 0.06, max: 0.55, step: 0.005 },
       storyReactionStart: { value: 0.285, min: 0.1, max: 0.6, step: 0.005 },
-      storyReactionEnd: { value: 0.425, min: 0.16, max: 0.72, step: 0.005 },
-      storyCoreStart: { value: 0.425, min: 0.22, max: 0.76, step: 0.005 },
-      storyCoreEnd: { value: 0.575, min: 0.28, max: 0.84, step: 0.005 },
-      storyPortalStart: { value: 0.585, min: 0.36, max: 0.9, step: 0.005 },
-      storyPortalEnd: { value: 0.735, min: 0.44, max: 0.95, step: 0.005 },
-      storyMapStart: { value: 0.865, min: 0.5, max: 0.99, step: 0.005 },
-      storyMapEnd: { value: 0.955, min: 0.58, max: 1.0, step: 0.005 },
+      storyReactionEnd: { value: 0.5, min: 0.16, max: 0.72, step: 0.005 },
+      storyCoreStart: { value: 0.455, min: 0.22, max: 0.76, step: 0.005 },
+      storyCoreEnd: { value: 0.66, min: 0.28, max: 0.84, step: 0.005 },
+      storyPortalStart: { value: 0.61, min: 0.36, max: 0.9, step: 0.005 },
+      storyPortalEnd: { value: 0.805, min: 0.44, max: 0.95, step: 0.005 },
+      storyMapStart: { value: 0.795, min: 0.5, max: 0.99, step: 0.005 },
+      storyMapEnd: { value: 0.885, min: 0.58, max: 1.0, step: 0.005 },
 
       guideEnabled: true,
       guideOpacity: { value: 0.92, min: 0, max: 1, step: 0.01 },
-      guideX: { value: 4.2, min: 0, max: 60, step: 0.1 },
-      guideY: { value: 86, min: 20, max: 96, step: 0.5 },
+      guideX: { value: 72, min: 0, max: 92, step: 0.1 },
+      guideY: { value: 82, min: 20, max: 96, step: 0.5 },
       guideFadeSize: { value: 0.035, min: 0.006, max: 0.12, step: 0.002 },
-      guideDescendStart: { value: 0.055, min: 0.0, max: 0.28, step: 0.005 },
-      guideDescendEnd: { value: 0.18, min: 0.04, max: 0.4, step: 0.005 },
-      guideAnalyzeStart: { value: 0.34, min: 0.12, max: 0.7, step: 0.005 },
-      guideAnalyzeEnd: { value: 0.57, min: 0.2, max: 0.84, step: 0.005 },
+      guideDescendStart: { value: 0.05, min: 0.0, max: 0.28, step: 0.005 },
+      guideDescendEnd: { value: 0.19, min: 0.04, max: 0.4, step: 0.005 },
+      guideAnalyzeStart: { value: 0.155, min: 0.04, max: 0.7, step: 0.005 },
+      guideAnalyzeEnd: { value: 0.65, min: 0.2, max: 0.84, step: 0.005 },
       guidePortalStart: { value: 0.59, min: 0.32, max: 0.9, step: 0.005 },
-      guidePortalEnd: { value: 0.78, min: 0.4, max: 0.96, step: 0.005 },
-      guideMapStart: { value: 0.88, min: 0.56, max: 0.99, step: 0.005 },
-      guideMapEnd: { value: 0.98, min: 0.62, max: 1, step: 0.005 },
+      guidePortalEnd: { value: 0.815, min: 0.4, max: 0.96, step: 0.005 },
+      guideMapStart: { value: 0.815, min: 0.56, max: 0.99, step: 0.005 },
+      guideMapEnd: { value: 0.99, min: 0.62, max: 1, step: 0.005 },
+    }),
+
+    "MAP / INTERFACE STORY": folder({
+      mapMissionEnabled: true,
+      mapMissionStart: { value: 0.835, min: 0.5, max: 0.98, step: 0.005 },
+      mapMissionFull: { value: 0.87, min: 0.55, max: 1, step: 0.005 },
+      mapMissionExitStart: { value: 1, min: 0.62, max: 1, step: 0.005 },
+      mapMissionExitEnd: { value: 1, min: 0.66, max: 1, step: 0.005 },
+      mapMissionOpacity: { value: 0.96, min: 0, max: 1, step: 0.01 },
+      mapMissionX: { value: 4.2, min: 0, max: 62, step: 0.1 },
+      mapMissionY: { value: 8, min: 3, max: 78, step: 0.5 },
+      mapMissionWidth: { value: 520, min: 320, max: 840, step: 10 },
+      mapMissionTitleSize: { value: 28, min: 18, max: 54, step: 1 },
+      mapMissionBodySize: { value: 12.5, min: 9, max: 20, step: 0.5 },
+      mapMissionGlow: { value: 28, min: 0, max: 90, step: 1 },
     }),
 
     "APP_FLOW": folder({
       // Total page height. Lower value = less empty wheel travel and faster cinematic movement.
-      scrollHeightVh: { value: 640, min: 520, max: 1200, step: 10 },
+      scrollHeightVh: { value: 860, min: 500, max: 1200, step: 10 },
       cisternEnterStart: { value: 0.09, min: 0.02, max: 0.5, step: 0.005 },
       cisternEnterEnd: { value: 0.19, min: 0.08, max: 0.65, step: 0.005 },
       // Camera motion starts as soon as the CisternSceneLab is visible.
       // Tighten this range if you still feel dead scroll.
-      labMotionStart: { value: 0.18, min: 0.06, max: 0.75, step: 0.005 },
-      labMotionEnd: { value: 0.62, min: 0.25, max: 0.92, step: 0.005 },
-      portalStart: { value: 0.585, min: 0.3, max: 0.95, step: 0.005 },
-      portalEnd: { value: 0.84, min: 0.4, max: 0.99, step: 0.005 },
+      labMotionStart: { value: 0.15, min: 0.06, max: 0.75, step: 0.005 },
+      labMotionEnd: { value: 0.64, min: 0.25, max: 0.92, step: 0.005 },
+      portalStart: { value: 0.59, min: 0.3, max: 0.95, step: 0.005 },
+      portalEnd: { value: 0.8, min: 0.4, max: 0.99, step: 0.005 },
       // Dedicated crossfade controls. These remove the half-map / half-cistern stuck frame.
-      mapVisualStart: { value: 0.865, min: 0.5, max: 0.98, step: 0.005 },
-      mapVisualEnd: { value: 0.915, min: 0.55, max: 1.0, step: 0.005 },
-      cisternFadeLead: { value: 0.012, min: 0, max: 0.08, step: 0.002 },
-      mapMountLead: { value: 0.018, min: 0, max: 0.08, step: 0.002 },
-      progressSmoothing: { value: 0.18, min: 0, max: 1, step: 0.01 },
+      mapVisualStart: { value: 0.805, min: 0.5, max: 0.98, step: 0.005 },
+      mapVisualEnd: { value: 0.895, min: 0.55, max: 1.0, step: 0.005 },
+      cisternFadeLead: { value: 0.07, min: 0, max: 0.08, step: 0.002 },
+      mapMountLead: { value: 0.08, min: 0, max: 0.08, step: 0.002 },
+      progressSmoothing: { value: 0.52, min: 0, max: 1, step: 0.01 },
     }),
 
     "06_LIGHT_FOG_BLOOM": folder({
@@ -3317,9 +3924,9 @@ export default function App() {
       fogColor: "#020607",
       fogNear: { value: 5.1, min: 0.1, max: 15, step: 0.1 },
       fogFar: { value: 15.3, min: 1, max: 30, step: 0.1 },
-      bloomIntensity: { value: 0.53, min: 0, max: 3, step: 0.01 },
-      bloomThreshold: { value: 0.44, min: 0, max: 1, step: 0.01 },
-      bloomSmoothing: { value: 0.76, min: 0, max: 1, step: 0.01 },
+      bloomIntensity: { value: 0.48, min: 0, max: 3, step: 0.01 },
+      bloomThreshold: { value: 0.46, min: 0, max: 1, step: 0.01 },
+      bloomSmoothing: { value: 0.78, min: 0, max: 1, step: 0.01 },
       vignetteOffset: { value: 0.18, min: 0, max: 1, step: 0.01 },
       vignetteDarkness: { value: 0.62, min: 0, max: 2, step: 0.01 },
     }),
@@ -3415,22 +4022,25 @@ export default function App() {
   const shouldMountMap = scroll >= mapVisualStart - (design.mapMountLead ?? 0.018);
   const showIntroInterface = introOpacity > 0.04 && cisternOpacity < 0.12 && mapProgress < 0.02;
 
+  /* V69 mobile layout uses CSS-only resizing; desktop timing preserved. */
   // HARD POINTER OWNERSHIP
   // Intro canvas is completely unmounted once CisternSceneLab starts becoming visible.
   // This prevents the intro canvas / App overlays from stealing R3F raycaster events.
-  const shouldRenderIntro = introOpacity > 0.012 && mapProgress < 0.02;
+  const shouldRenderIntro = introOpacity > 0.012 && cisternOpacity < 0.08 && mapProgress < 0.02;
   const introInteractive = shouldRenderIntro;
   const cisternInteractive = mapProgress < 0.72;
-  const mapInteractive = mapProgress > 0.88;
+  const mapInteractive = mapProgress > 0.58;
 
   return (
     <main
       ref={siteRef}
-      className={`site storySite act-${activeStory.slug} ${fullNetwork ? "networkComplete" : ""}`}
+      className={`site storySite act-${activeStory.slug} ${fullNetwork ? "networkComplete" : ""} ${window.innerWidth < 768 ? "isMobileSite" : window.innerWidth < 1024 ? "isTabletSite" : "isDesktopSite"}`}
       onMouseMove={showIntroInterface ? handleMouseMove : undefined}
       style={{ minHeight: `${design.scrollHeightVh}vh`, pointerEvents: "auto" }}
     >
+      <AppRuntimeVisualFixes />
       <Leva hidden={!designMode} collapsed />
+      <PresentationAudioButton />
 
       <button
         className={`designToggle ${designMode ? "active" : ""}`}
@@ -3465,7 +4075,7 @@ export default function App() {
           >
             <Canvas
               camera={{ position: [0, design.cameraY, design.introCameraZ], fov: design.cameraFov }}
-              dpr={[1, 1.15]}
+              dpr={[0.85, Math.min(window.devicePixelRatio || 1, 1.1)]}
               gl={{ antialias: false, stencil: false, alpha: false, powerPreference: "high-performance" }}
               performance={{ min: 0.65 }}
             >
@@ -3543,6 +4153,7 @@ export default function App() {
         {showIntroInterface && <IntroMinimalInterface introOpacity={introOpacity} />}
 
         {preloaderDone && <CinematicStoryLayer scroll={scroll} design={design} />}
+        {preloaderDone && <MapMissionOverlay scroll={scroll} design={design} activatedNodes={activatedNodes} />}
         {preloaderDone && <CinematicGuideLayer scroll={scroll} design={design} />}
       </section>
 

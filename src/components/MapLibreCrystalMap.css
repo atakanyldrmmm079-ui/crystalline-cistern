@@ -1120,3 +1120,981 @@
 .mapLibreCrystalStage .maplibregl-canvas {
   outline: none;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* FINAL HARD FIX: remove map bands + prevent global button styles on PNG pins */
+/* -------------------------------------------------------------------------- */
+.mapLibreCrystalStage .mlCityGlow,
+.mapLibreCrystalStage .mlMapLight,
+.mapLibreCrystalStage .mlTerrainMask,
+.mapLibreCrystalStage .mlWaterVeil,
+.mapLibreCrystalStage .mlCrystalField,
+.mapLibreCrystalStage .mlScanGrid,
+.mapLibreCrystalStage .mlHeavyVignette,
+.mapLibreCrystalStage .mlCursorGlow {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  background: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  animation: none !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarkerLayer {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 40 !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  filter: none !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarker,
+.mapLibreCrystalStage .mlLogoMarker:hover,
+.mapLibreCrystalStage .mlLogoMarker:focus,
+.mapLibreCrystalStage .mlLogoMarker:active {
+  position: absolute !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  transform: translate(-50%, -50%) !important;
+  pointer-events: auto !important;
+  overflow: visible !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarkerInner {
+  position: relative !important;
+  width: var(--logo-size) !important;
+  height: var(--logo-size) !important;
+  display: grid !important;
+  place-items: center !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  border-radius: 999px !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarkerRing {
+  width: var(--ring-size) !important;
+  height: var(--ring-size) !important;
+  max-width: 92px !important;
+  max-height: 92px !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 0 var(--ring-glow) color-mix(in srgb, var(--node-color) 54%, transparent) !important;
+  animation: none !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarker.is-pulse .mlLogoMarkerRing {
+  animation: none !important;
+}
+
+.mapLibreCrystalStage .mlHoverPin,
+.mapLibreCrystalStage .mlHoverRing {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  animation: none !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* FINAL V11: crystal icon markers, no rings                                  */
+/* -------------------------------------------------------------------------- */
+.mapLibreCrystalStage .mlLogoMarkerLayer {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 40 !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  filter: none !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarker,
+.mapLibreCrystalStage .mlLogoMarker:hover,
+.mapLibreCrystalStage .mlLogoMarker:focus,
+.mapLibreCrystalStage .mlLogoMarker:active {
+  position: absolute !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  transform: translate(-50%, -50%) !important;
+  pointer-events: auto !important;
+  overflow: visible !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarkerInner {
+  position: relative !important;
+  width: var(--logo-size) !important;
+  height: var(--logo-size) !important;
+  display: grid !important;
+  place-items: center !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  border-radius: 999px !important;
+  isolation: isolate !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarkerRing,
+.mapLibreCrystalStage .mlHoverPin,
+.mapLibreCrystalStage .mlHoverRing {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  animation: none !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarkerInner::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -12px !important;
+  border-radius: 999px !important;
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--node-color) 36%, white) 0%, color-mix(in srgb, var(--node-color) 22%, transparent) 34%, transparent 72%) !important;
+  filter: blur(12px) !important;
+  opacity: 0.72 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  transform: scale(0.92) !important;
+  transition: opacity 220ms ease, transform 220ms ease, filter 220ms ease !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarkerInner::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -4px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.28) 34%, transparent 48%, rgba(255,255,255,0.08) 62%, transparent 100%) !important;
+  mix-blend-mode: screen !important;
+  opacity: 0.34 !important;
+  z-index: 3 !important;
+  pointer-events: none !important;
+  transform: rotate(-18deg) !important;
+  transition: opacity 220ms ease, transform 220ms ease !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarkerIcon {
+  position: relative !important;
+  width: var(--logo-size) !important;
+  height: var(--logo-size) !important;
+  object-fit: contain !important;
+  display: block !important;
+  opacity: var(--logo-opacity) !important;
+  z-index: 2 !important;
+  filter:
+    drop-shadow(0 0 8px color-mix(in srgb, var(--node-color) 78%, transparent))
+    drop-shadow(0 0 var(--logo-glow) color-mix(in srgb, var(--node-color) 68%, transparent))
+    drop-shadow(0 8px 18px rgba(0,0,0,0.58)) !important;
+  transition: width 180ms ease, height 180ms ease, transform 180ms ease, filter 180ms ease, opacity 180ms ease !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarker:hover .mlLogoMarkerInner::before,
+.mapLibreCrystalStage .mlLogoMarker.is-hovered .mlLogoMarkerInner::before {
+  opacity: 1 !important;
+  transform: scale(1.14) !important;
+  filter: blur(15px) !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarker:hover .mlLogoMarkerInner::after,
+.mapLibreCrystalStage .mlLogoMarker.is-hovered .mlLogoMarkerInner::after {
+  opacity: 0.62 !important;
+  transform: rotate(12deg) scale(1.12) !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarker:hover .mlLogoMarkerIcon,
+.mapLibreCrystalStage .mlLogoMarker.is-hovered .mlLogoMarkerIcon {
+  width: var(--logo-hover-size) !important;
+  height: var(--logo-hover-size) !important;
+  transform: scale(1.06) !important;
+  filter:
+    drop-shadow(0 0 12px color-mix(in srgb, var(--node-color) 90%, white))
+    drop-shadow(0 0 calc(var(--logo-glow) * 1.35) color-mix(in srgb, var(--node-color) 82%, transparent))
+    drop-shadow(0 0 22px rgba(255,255,255,0.24))
+    drop-shadow(0 10px 22px rgba(0,0,0,0.62)) !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerInner::before {
+  opacity: 1 !important;
+  transform: scale(1.22) !important;
+  filter: blur(18px) !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
+  width: var(--logo-active-size) !important;
+  height: var(--logo-active-size) !important;
+  transform: scale(1.08) !important;
+  filter:
+    drop-shadow(0 0 14px color-mix(in srgb, var(--node-color) 100%, white))
+    drop-shadow(0 0 calc(var(--logo-glow) * 1.55) color-mix(in srgb, var(--node-color) 88%, transparent))
+    drop-shadow(0 0 28px rgba(255,255,255,0.28))
+    drop-shadow(0 12px 26px rgba(0,0,0,0.65)) !important;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V17 PLAIN MAP ICONS — performance-safe                                      */
+/* -------------------------------------------------------------------------- */
+
+.mlHoverPin,
+.mlHoverRing,
+.mlLogoMarkerRing {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  animation: none !important;
+  pointer-events: none !important;
+}
+
+.mlLogoMarker {
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.mlLogoMarkerInner {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.mlLogoMarkerInner::before,
+.mlLogoMarkerInner::after {
+  display: none !important;
+  content: none !important;
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+.mlLogoMarkerIcon,
+.mlLogoMarker:hover .mlLogoMarkerIcon,
+.mlLogoMarker.is-hovered .mlLogoMarkerIcon,
+.mlLogoMarker.is-active .mlLogoMarkerIcon {
+  filter: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.mlLogoMarkerFallback {
+  filter: none !important;
+  box-shadow: none !important;
+}
+
+.mlCityGlow,
+.mlMapLight,
+.mlTerrainMask,
+.mlWaterVeil,
+.mlCrystalField,
+.mlScanGrid,
+.mlHeavyVignette {
+  display: none !important;
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+
+/* V19 STORY BUILD / PLAIN ICON SAFETY */
+.mlHoverPin,
+.mlHoverRing,
+.mlLogoMarkerRing {
+  display: none !important;
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+.mlLogoMarkerIcon,
+.mlLogoMarker:hover .mlLogoMarkerIcon,
+.mlLogoMarker.is-hovered .mlLogoMarkerIcon,
+.mlLogoMarker.is-active .mlLogoMarkerIcon {
+  filter: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.mlLogoMarkerInner::before,
+.mlLogoMarkerInner::after {
+  display: none !important;
+  content: none !important;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V41 MAP INTERFACE CLEANUP                                                  */
+/* -------------------------------------------------------------------------- */
+.mlNodeIndex {
+  display: none !important;
+}
+
+.mlFooter {
+  left: auto !important;
+  right: 28px !important;
+  bottom: 18px !important;
+  width: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 8px !important;
+}
+
+.mlFooterZoom {
+  gap: 10px !important;
+}
+
+.mlFooterZoom li {
+  width: 14px !important;
+  opacity: 0.9;
+}
+
+.mlFooterZoom span {
+  font-size: 8px !important;
+  letter-spacing: 0.22em !important;
+  color: rgba(205, 224, 220, 0.40) !important;
+}
+
+.mlListButton {
+  padding: 8px 11px !important;
+  font-size: 8px !important;
+  letter-spacing: 0.22em !important;
+  color: rgba(225, 255, 250, 0.56) !important;
+  background: rgba(3, 12, 13, 0.36) !important;
+  border-color: rgba(160, 255, 240, 0.12) !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 900px) {
+  .mlFooter {
+    right: 22px !important;
+    bottom: 16px !important;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V52 MAP ICON SIZE + STABLE HOVER CIRCLE                                     */
+/* -------------------------------------------------------------------------- */
+
+.mapLibreCrystalStage .mlLogoMarker {
+  min-width: calc(var(--logo-hover-size) + 38px) !important;
+  min-height: calc(var(--logo-hover-size) + 38px) !important;
+  display: grid !important;
+  place-items: center !important;
+  touch-action: manipulation !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarkerRing {
+  display: block !important;
+  visibility: visible !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: var(--ring-size) !important;
+  height: var(--ring-size) !important;
+  border-radius: 999px !important;
+  transform: translate(-50%, -50%) scale(0.88) !important;
+  border: var(--ring-thickness) solid color-mix(in srgb, var(--node-color) 62%, white) !important;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--node-color) 14%, transparent), transparent 64%),
+    rgba(2, 10, 11, 0.04) !important;
+  box-shadow:
+    0 0 var(--ring-glow) color-mix(in srgb, var(--node-color) 38%, transparent),
+    inset 0 0 26px rgba(255,255,255,0.035) !important;
+  opacity: 0 !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+  transition: opacity 160ms ease, transform 160ms ease !important;
+  animation: none !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarker:hover .mlLogoMarkerRing,
+.mapLibreCrystalStage .mlLogoMarker.is-hovered .mlLogoMarkerRing,
+.mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerRing {
+  opacity: var(--ring-opacity) !important;
+  transform: translate(-50%, -50%) scale(1) !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarkerIcon {
+  width: var(--logo-size) !important;
+  height: var(--logo-size) !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarker:hover .mlLogoMarkerIcon,
+.mapLibreCrystalStage .mlLogoMarker.is-hovered .mlLogoMarkerIcon {
+  width: var(--logo-hover-size) !important;
+  height: var(--logo-hover-size) !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
+  width: var(--logo-active-size) !important;
+  height: var(--logo-active-size) !important;
+}
+
+
+
+
+/* -------------------------------------------------------------------------- */
+
+.mapLibreCrystalStage {
+  contain: layout paint size;
+  transform: translateZ(0);
+}
+
+@media (max-width: 768px) {
+  .mlHeader {
+    left: 18px !important;
+    right: 18px !important;
+    top: 18px !important;
+  }
+
+  .mlMapControlPanel {
+    display: none !important;
+  }
+
+  .mlHeroCopy {
+    display: none !important;
+  }
+
+  .mlModePill {
+    padding: 8px 10px !important;
+    font-size: 8px !important;
+  }
+
+  .mapMissionOverlay.persistent,
+  .mapMissionOverlay {
+    left: 18px !important;
+    right: 18px !important;
+    bottom: 76px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  .mapLibreCrystalStage .mlLogoMarker {
+    min-width: calc(var(--logo-hover-size) + 24px) !important;
+    min-height: calc(var(--logo-hover-size) + 24px) !important;
+  }
+
+  .mlFooter {
+    right: 18px !important;
+    bottom: 14px !important;
+  }
+
+  .mlDetailPanel {
+    left: 14px !important;
+    right: 14px !important;
+    bottom: 14px !important;
+    width: auto !important;
+    max-height: 54vh !important;
+    overflow-y: auto !important;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V62 MAP LABEL / RING CLEANUP                                                */
+/* -------------------------------------------------------------------------- */
+
+/* Hide all icon text labels, including the remaining Basilica label. */
+.mlLogoMarkerLabel,
+.mapLibreCrystalStage .mlLogoMarkerLabel {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* The hover circle appears only while hovering, so Basilica does not stay special by default. */
+.mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerRing {
+  opacity: 0 !important;
+  transform: translate(-50%, -50%) scale(0.88) !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarker:hover .mlLogoMarkerRing,
+.mapLibreCrystalStage .mlLogoMarker.is-hovered .mlLogoMarkerRing {
+  opacity: var(--ring-opacity) !important;
+  transform: translate(-50%, -50%) scale(1) !important;
+}
+
+.mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
+  width: var(--logo-size) !important;
+  height: var(--logo-size) !important;
+  transform: scale(1) !important;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V64 FINAL MAP STABILITY + MOBILE                                            */
+/* -------------------------------------------------------------------------- */
+
+/* Keep map visible during detail transitions; prevents black flash perception. */
+.mapLibreCrystalStage,
+.mapLibreCrystalStage .maplibregl-map,
+.mapLibreCrystalStage .maplibregl-canvas,
+.mapLibreCrystalStage canvas {
+  background: #020607 !important;
+}
+
+.mlLogoMarker {
+  -webkit-tap-highlight-color: transparent !important;
+  touch-action: manipulation !important;
+}
+
+.mlLogoMarker,
+.mlLogoMarkerInner,
+.mlLogoMarkerIcon {
+  will-change: transform, opacity !important;
+}
+
+.mlDetailPanel,
+.mlBottomPanel,
+.mapMissionOverlay {
+  transform: translateZ(0) !important;
+  backface-visibility: hidden !important;
+}
+
+@media (max-width: 768px) {
+  .mapLibreCrystalStage {
+    height: 100svh !important;
+    min-height: 100svh !important;
+    overflow: hidden !important;
+  }
+
+  .mlHeader {
+    left: 16px !important;
+    right: 16px !important;
+    top: 16px !important;
+    gap: 8px !important;
+  }
+
+  .mlBrand b {
+    font-size: 13px !important;
+  }
+
+  .mlBrand span,
+  .mlModePill span {
+    font-size: 8px !important;
+  }
+
+  .mlModePill {
+    padding: 8px 10px !important;
+  }
+
+  .mlHeroCopy {
+    display: none !important;
+  }
+
+  .mlMapControlPanel {
+    display: none !important;
+  }
+
+  .mlBottomPanel {
+    left: 16px !important;
+    right: 16px !important;
+    bottom: 14px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  .mlDetailPanel {
+    left: 14px !important;
+    right: 14px !important;
+    bottom: 14px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: 56svh !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+
+  .mapLibreCrystalStage .mlLogoMarker {
+    min-width: calc(var(--logo-hover-size) + 22px) !important;
+    min-height: calc(var(--logo-hover-size) + 22px) !important;
+  }
+
+  .mapLibreCrystalStage .mlLogoMarkerRing {
+    box-shadow: 0 0 12px color-mix(in srgb, var(--node-color) 32%, transparent) !important;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V69 IPHONE MAP LAYOUT FIX                                                   */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .mapLibreCrystalStage {
+    width: 100vw !important;
+    height: 100svh !important;
+    min-height: 100svh !important;
+    overflow: hidden !important;
+  }
+
+  .mapLibreCrystalStage .maplibregl-map,
+  .mapLibreCrystalStage .maplibregl-canvas-container,
+  .mapLibreCrystalStage canvas {
+    width: 100vw !important;
+    height: 100svh !important;
+  }
+
+  .mlHeader {
+    left: 16px !important;
+    right: 16px !important;
+    top: calc(14px + env(safe-area-inset-top, 0px)) !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    z-index: 50 !important;
+  }
+
+  .mlBrand {
+    max-width: 58vw !important;
+  }
+
+  .mlBrand span {
+    font-size: 7.5px !important;
+    letter-spacing: 0.18em !important;
+  }
+
+  .mlBrand b {
+    font-size: 13px !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  .mlModePill {
+    padding: 7px 9px !important;
+    min-width: auto !important;
+    max-width: 34vw !important;
+    border-radius: 999px !important;
+  }
+
+  .mlModePill span {
+    font-size: 7px !important;
+    letter-spacing: 0.14em !important;
+  }
+
+  .mlModePill b {
+    font-size: 11px !important;
+  }
+
+  .mlBottomPanel {
+    left: 14px !important;
+    right: 14px !important;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+    width: auto !important;
+    max-width: none !important;
+    padding: 12px 13px !important;
+    border-radius: 16px !important;
+    z-index: 48 !important;
+  }
+
+  .mlBottomPanel h3,
+  .mlDetailPanel h3 {
+    font-size: 17px !important;
+    line-height: 1.05 !important;
+  }
+
+  .mlBottomPanel p,
+  .mlDetailPanel p {
+    font-size: 11px !important;
+    line-height: 1.46 !important;
+  }
+
+  .mlDetailPanel {
+    left: 14px !important;
+    right: 14px !important;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: 50svh !important;
+    overflow-y: auto !important;
+    padding: 14px 14px 15px !important;
+    border-radius: 18px !important;
+    z-index: 70 !important;
+    overscroll-behavior: contain !important;
+  }
+
+  .mlDetailPanel button,
+  .mlBottomPanel button {
+    min-height: 38px !important;
+    font-size: 9px !important;
+    letter-spacing: 0.16em !important;
+  }
+
+  .mapLibreCrystalStage .mlLogoMarker {
+    min-width: 84px !important;
+    min-height: 84px !important;
+  }
+
+  .mapLibreCrystalStage .mlLogoMarkerInner {
+    width: var(--logo-size) !important;
+    height: var(--logo-size) !important;
+  }
+
+  .mapLibreCrystalStage .mlLogoMarkerIcon {
+    width: 58px !important;
+    height: 58px !important;
+  }
+
+  .mapLibreCrystalStage .mlLogoMarker:hover .mlLogoMarkerIcon,
+  .mapLibreCrystalStage .mlLogoMarker.is-hovered .mlLogoMarkerIcon {
+    width: 66px !important;
+    height: 66px !important;
+  }
+
+  .mapLibreCrystalStage .mlLogoMarkerRing {
+    width: 82px !important;
+    height: 82px !important;
+    box-shadow: 0 0 11px color-mix(in srgb, var(--node-color) 30%, transparent) !important;
+  }
+
+  .mlFooter {
+    right: 14px !important;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    font-size: 7px !important;
+    opacity: 0.55 !important;
+  }
+
+  .mlLogoMarkerLabel {
+    display: none !important;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V70 MAP RESPONSIVE BREAKPOINTS FINAL                                        */
+/* -------------------------------------------------------------------------- */
+
+/* Tablet map */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .mapLibreCrystalStage {
+    height: 100svh !important;
+    min-height: 100svh !important;
+  }
+
+  .mlHeader {
+    left: 24px !important;
+    right: 24px !important;
+    top: 24px !important;
+  }
+
+  .mlHeroCopy {
+    left: 34px !important;
+    bottom: 12vh !important;
+    max-width: 420px !important;
+  }
+
+  .mlBottomPanel,
+  .mlDetailPanel {
+    left: 24px !important;
+    right: auto !important;
+    bottom: 24px !important;
+    width: min(460px, calc(100vw - 48px)) !important;
+  }
+}
+
+/* Mobile map */
+@media (max-width: 768px) {
+  .mapLibreCrystalStage,
+  .mapLibreCrystalStage .maplibregl-map,
+  .mapLibreCrystalStage .maplibregl-canvas-container,
+  .mapLibreCrystalStage canvas {
+    width: 100vw !important;
+    height: 100svh !important;
+    min-height: 100svh !important;
+    overflow: hidden !important;
+  }
+
+  .mlHeader {
+    left: 16px !important;
+    right: 16px !important;
+    top: calc(14px + env(safe-area-inset-top, 0px)) !important;
+    gap: 8px !important;
+    z-index: 50 !important;
+  }
+
+  .mlBrand {
+    max-width: 58vw !important;
+  }
+
+  .mlBrand span {
+    font-size: 7.5px !important;
+    letter-spacing: 0.18em !important;
+  }
+
+  .mlBrand b {
+    font-size: 13px !important;
+  }
+
+  .mlModePill {
+    padding: 7px 9px !important;
+    max-width: 34vw !important;
+  }
+
+  .mlModePill span {
+    font-size: 7px !important;
+    letter-spacing: 0.14em !important;
+  }
+
+  .mlHeroCopy,
+  .mlMapControlPanel,
+  .mlLogoMarkerLabel {
+    display: none !important;
+  }
+
+  .mlBottomPanel {
+    left: 14px !important;
+    right: 14px !important;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+    width: auto !important;
+    max-width: none !important;
+    padding: 12px 13px !important;
+    border-radius: 16px !important;
+  }
+
+  .mlDetailPanel {
+    left: 14px !important;
+    right: 14px !important;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: 50svh !important;
+    overflow-y: auto !important;
+    padding: 14px 14px 15px !important;
+    border-radius: 18px !important;
+    overscroll-behavior: contain !important;
+  }
+
+  .mlBottomPanel h3,
+  .mlDetailPanel h3 {
+    font-size: 17px !important;
+    line-height: 1.05 !important;
+  }
+
+  .mlBottomPanel p,
+  .mlDetailPanel p {
+    font-size: 11px !important;
+    line-height: 1.46 !important;
+  }
+
+  .mapLibreCrystalStage .mlLogoMarker {
+    min-width: 84px !important;
+    min-height: 84px !important;
+  }
+
+  .mapLibreCrystalStage .mlLogoMarkerIcon {
+    width: 58px !important;
+    height: 58px !important;
+  }
+
+  .mapLibreCrystalStage .mlLogoMarker:hover .mlLogoMarkerIcon,
+  .mapLibreCrystalStage .mlLogoMarker.is-hovered .mlLogoMarkerIcon {
+    width: 66px !important;
+    height: 66px !important;
+  }
+
+  .mapLibreCrystalStage .mlLogoMarkerRing {
+    width: 82px !important;
+    height: 82px !important;
+  }
+
+  .mlFooter {
+    right: 14px !important;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    font-size: 7px !important;
+    opacity: 0.55 !important;
+  }
+}
+
+/* Small phone map */
+@media (max-width: 389px) {
+  .mlHeader {
+    left: 12px !important;
+    right: 12px !important;
+  }
+
+  .mlBrand span {
+    font-size: 6.8px !important;
+  }
+
+  .mlBrand b {
+    font-size: 11.5px !important;
+  }
+
+  .mlModePill {
+    padding: 6px 8px !important;
+  }
+
+  .mlBottomPanel,
+  .mlDetailPanel {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .mapLibreCrystalStage .mlLogoMarker {
+    min-width: 76px !important;
+    min-height: 76px !important;
+  }
+
+  .mapLibreCrystalStage .mlLogoMarkerIcon {
+    width: 52px !important;
+    height: 52px !important;
+  }
+}
+
+/* Landscape phone map */
+@media (max-width: 900px) and (orientation: landscape) {
+  .mlHeader {
+    left: 18px !important;
+    right: 18px !important;
+    top: 12px !important;
+  }
+
+  .mlBottomPanel,
+  .mlDetailPanel {
+    left: 18px !important;
+    right: auto !important;
+    bottom: 12px !important;
+    width: min(420px, 48vw) !important;
+    max-height: 68svh !important;
+  }
+}

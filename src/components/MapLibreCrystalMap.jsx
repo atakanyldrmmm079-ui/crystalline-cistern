@@ -48,28 +48,28 @@ const MAP_DESIGN_DEFAULTS = {
   terrainExaggeration: 0.72,
   buildingsEnabled: true,
   buildingsMinZoom: 12.35,
-  buildingOpacity: 0.42,
+  buildingOpacity: 0.32,
   buildingBaseColor: BUILDING_BASE_COLOR,
   buildingHoverColor: BUILDING_HOVER_COLOR,
   buildingNetworkColor: BUILDING_NETWORK_COLOR,
-  networkBuildingLimit: 240,
+  networkBuildingLimit: 120,
 
-  hoverBuildingsEnabled: true,
-  hoverThrottleMs: 90,
+  hoverBuildingsEnabled: false,
+  hoverThrottleMs: 180,
   hoverPixelRadius: 8,
   hoverMaxBuildings: 2,
   hoverGlowOpacity: 0.18,
   hoverCoreOpacity: 0.58,
 
-  connectionSteps: 54,
+  connectionSteps: 26,
   connectionBend: 0.14,
   connectionWobble: 0.006,
   branchOffsetA: 0.00009,
   branchOffsetB: -0.00011,
   connectionColor: "#71ffe3",
   connectionCoreColor: "#f3fff9",
-  connectionShadowWidth: 8.5,
-  connectionGlowWidth: 5.2,
+  connectionShadowWidth: 4.2,
+  connectionGlowWidth: 3.0,
   connectionCoreWidth: 2.2,
   connectionBranchWidth: 1.15,
   connectionGlowOpacity: 0.48,
@@ -83,16 +83,36 @@ const MAP_DESIGN_DEFAULTS = {
   nodeHaloIdle: 23,
   nodeCoreFocused: 8,
   nodeCoreIdle: 5.6,
-  nodeHaloOpacity: 0.35,
+  nodeHaloOpacity: 0.28,
   nodeCoreOpacity: 0.88,
 
-  showHeroCopy: true,
+  logoMarkerEnabled: true,
+  logoSize: 62,
+  logoHoverSize: 70,
+  logoActiveSize: 66,
+  logoYOffset: -10,
+  logoOpacity: 1,
+  logoGlow: 10,
+  logoLabelVisible: false,
+  logoLabelOpacity: 0,
+
+  hoverRingEnabled: true,
+  hoverRingSize: 98,
+  hoverRingOpacity: 0.55,
+  hoverRingThickness: 1.1,
+  hoverRingGlow: 16,
+  hoverRingPulseEnabled: false,
+
+  showHeroCopy: false,
   heroOpacity: 0.88,
   showBottomPanel: true,
   bottomPanelOpacity: 0.94,
   bottomPanelY: 0,
-  fxOpacity: 0.72,
-  vignetteOpacity: 0.76,
+  fxOpacity: 0.58,
+  vignetteOpacity: 0.70,
+  waterVeilOpacity: 0,
+  waterVeilHeightVh: 0,
+  terrainMaskOpacity: 0,
 
   backgroundColor: "#071416",
   waterColor: "#0b3440",
@@ -219,6 +239,22 @@ function getNode(id) {
 
 function getMapNodeById(id) {
   return MAP_CISTERNS.find((item) => item.id === id);
+}
+
+function getCisternLogoPath(node) {
+  return `/icons/cisterns/${node.id}.png`;
+}
+
+function projectMapNodes(map) {
+  if (!map) return [];
+  return MAP_CISTERNS.map((node) => {
+    const point = map.project(node.lngLat);
+    return {
+      ...node,
+      x: point.x,
+      y: point.y,
+    };
+  });
 }
 
 function getBuildingSourceName(map) {
@@ -707,11 +743,12 @@ function applyNodeLayerDesign(map, design = MAP_DESIGN_DEFAULTS) {
   try {
     if (map.getLayer("crystal-node-halo")) {
       map.setPaintProperty("crystal-node-halo", "circle-radius", ["case", ["boolean", ["get", "focused"], false], design.nodeHaloFocused, ["boolean", ["get", "active"], false], design.nodeHaloActive, design.nodeHaloIdle]);
-      map.setPaintProperty("crystal-node-halo", "circle-opacity", ["case", ["boolean", ["get", "focused"], false], design.nodeHaloOpacity, ["boolean", ["get", "active"], false], design.nodeHaloOpacity * 0.72, design.nodeHaloOpacity * 0.42]);
+      map.setPaintProperty("crystal-node-halo", "circle-opacity", 0);
     }
     if (map.getLayer("crystal-node-core")) {
       map.setPaintProperty("crystal-node-core", "circle-radius", ["case", ["boolean", ["get", "focused"], false], design.nodeCoreFocused, design.nodeCoreIdle]);
-      map.setPaintProperty("crystal-node-core", "circle-opacity", ["case", ["boolean", ["get", "focused"], false], design.nodeCoreOpacity, design.nodeCoreOpacity * 0.82]);
+      map.setPaintProperty("crystal-node-core", "circle-opacity", 0);
+      map.setPaintProperty("crystal-node-core", "circle-stroke-opacity", design.logoMarkerEnabled ? 0 : 0.86);
     }
   } catch {
     // Ignore style update errors.
@@ -806,6 +843,8 @@ export default function MapLibreCrystalMap({
   activatedNodes = [],
   setActivatedNodes,
 }) {
+  const mobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const overlayRafRef = useRef(null);
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const stageRef = useRef(null);
@@ -880,6 +919,25 @@ export default function MapLibreCrystalMap({
       fxOpacity: { value: MAP_DESIGN_DEFAULTS.fxOpacity, min: 0, max: 1, step: 0.01 },
       vignetteOpacity: { value: MAP_DESIGN_DEFAULTS.vignetteOpacity, min: 0, max: 1, step: 0.01 },
     }),
+    "Logo Markers": folder({
+      logoMarkerEnabled: { value: MAP_DESIGN_DEFAULTS.logoMarkerEnabled },
+      logoSize: { value: MAP_DESIGN_DEFAULTS.logoSize, min: 16, max: 110, step: 1 },
+      logoHoverSize: { value: MAP_DESIGN_DEFAULTS.logoHoverSize, min: 18, max: 140, step: 1 },
+      logoActiveSize: { value: MAP_DESIGN_DEFAULTS.logoActiveSize, min: 18, max: 130, step: 1 },
+      logoYOffset: { value: MAP_DESIGN_DEFAULTS.logoYOffset, min: -90, max: 40, step: 1 },
+      logoOpacity: { value: MAP_DESIGN_DEFAULTS.logoOpacity, min: 0, max: 1, step: 0.01 },
+      logoGlow: { value: MAP_DESIGN_DEFAULTS.logoGlow, min: 0, max: 80, step: 1 },
+      logoLabelVisible: { value: MAP_DESIGN_DEFAULTS.logoLabelVisible },
+      logoLabelOpacity: { value: MAP_DESIGN_DEFAULTS.logoLabelOpacity, min: 0, max: 1, step: 0.01 },
+    }),
+    "Hover Ring": folder({
+      hoverRingEnabled: { value: MAP_DESIGN_DEFAULTS.hoverRingEnabled },
+      hoverRingSize: { value: MAP_DESIGN_DEFAULTS.hoverRingSize, min: 40, max: 280, step: 1 },
+      hoverRingOpacity: { value: MAP_DESIGN_DEFAULTS.hoverRingOpacity, min: 0, max: 1, step: 0.01 },
+      hoverRingThickness: { value: MAP_DESIGN_DEFAULTS.hoverRingThickness, min: 0.4, max: 6, step: 0.1 },
+      hoverRingGlow: { value: MAP_DESIGN_DEFAULTS.hoverRingGlow, min: 0, max: 90, step: 1 },
+      hoverRingPulseEnabled: { value: MAP_DESIGN_DEFAULTS.hoverRingPulseEnabled },
+    }),
     "Colors": folder({
       backgroundColor: MAP_DESIGN_DEFAULTS.backgroundColor,
       waterColor: MAP_DESIGN_DEFAULTS.waterColor,
@@ -905,6 +963,7 @@ export default function MapLibreCrystalMap({
   const [panoramaNode, setPanoramaNode] = useState(null);
   const [zoomEnabled, setZoomEnabled] = useState(false);
   const [screenConnections, setScreenConnections] = useState([]);
+  const [nodeScreenPositions, setNodeScreenPositions] = useState([]);
 
   const fullNetwork = activatedNodes.length >= MAP_CISTERNS.length;
   const focusId = hovered || current.id;
@@ -1109,13 +1168,13 @@ export default function MapLibreCrystalMap({
     updateNodeSource(node.id, nextActive);
 
     if (shouldZoom) {
-      mapRef.current?.flyTo({
+      mapRef.current?.easeTo({
         center: node.lngLat,
         zoom: detailFromDesign(mapDesignRef.current).zoom,
         pitch: detailFromDesign(mapDesignRef.current).pitch,
         bearing: detailFromDesign(mapDesignRef.current).bearing,
-        speed: 0.82,
-        curve: 1.25,
+        duration: 850,
+        easing: (t) => t * t * (3 - 2 * t),
         essential: true,
       });
     }
@@ -1157,7 +1216,7 @@ export default function MapLibreCrystalMap({
   function backToMap() {
     setMode(MODES.MAP);
 
-    mapRef.current?.flyTo({
+    mapRef.current?.easeTo({
       center: overviewFromDesign(mapDesignRef.current).center,
       zoom: overviewFromDesign(mapDesignRef.current).zoom,
       pitch: overviewFromDesign(mapDesignRef.current).pitch,
@@ -1187,6 +1246,7 @@ export default function MapLibreCrystalMap({
       dragRotate: true,
       fadeDuration: 0,
       antialias: false,
+      maxTileCacheSize: mobile ? 64 : 128,
     });
 
     mapRef.current = map;
@@ -1202,16 +1262,26 @@ export default function MapLibreCrystalMap({
       ensureConnectionLayers(map, activatedNodesRef.current, currentRef.current.id, mapDesignRef.current);
       updateScreenConnectionOverlay(currentRef.current.id, activatedNodesRef.current);
 
-      const syncOverlayConnections = () => {
-        if (!mapDesignRef.current.svgConnectionOverlay) return;
-        updateScreenConnectionOverlay(currentRef.current.id, activatedNodesRef.current);
+      const syncMapOverlays = () => {
+        if (overlayRafRef.current) return;
+
+        overlayRafRef.current = requestAnimationFrame(() => {
+          overlayRafRef.current = null;
+
+          if (mapDesignRef.current.svgConnectionOverlay) {
+            updateScreenConnectionOverlay(currentRef.current.id, activatedNodesRef.current);
+          }
+
+          setNodeScreenPositions(projectMapNodes(map));
+        });
       };
 
-      map.on("move", syncOverlayConnections);
-      map.on("zoom", syncOverlayConnections);
-      map.on("rotate", syncOverlayConnections);
-      map.on("pitch", syncOverlayConnections);
-      map.on("resize", syncOverlayConnections);
+      map.on("move", syncMapOverlays);
+      map.on("zoom", syncMapOverlays);
+      map.on("rotate", syncMapOverlays);
+      map.on("pitch", syncMapOverlays);
+      map.on("resize", syncMapOverlays);
+      setNodeScreenPositions(projectMapNodes(map));
 
       map.addSource("crystal-nodes", {
         type: "geojson",
@@ -1225,7 +1295,7 @@ export default function MapLibreCrystalMap({
         paint: {
           "circle-radius": ["case", ["boolean", ["get", "focused"], false], mapDesignRef.current.nodeHaloFocused, ["boolean", ["get", "active"], false], mapDesignRef.current.nodeHaloActive, mapDesignRef.current.nodeHaloIdle],
           "circle-color": ["get", "color"],
-          "circle-opacity": ["case", ["boolean", ["get", "focused"], false], mapDesignRef.current.nodeHaloOpacity, ["boolean", ["get", "active"], false], mapDesignRef.current.nodeHaloOpacity * 0.72, mapDesignRef.current.nodeHaloOpacity * 0.42],
+          "circle-opacity": mapDesignRef.current.logoMarkerEnabled ? 0 : ["case", ["boolean", ["get", "focused"], false], mapDesignRef.current.nodeHaloOpacity, ["boolean", ["get", "active"], false], mapDesignRef.current.nodeHaloOpacity * 0.72, mapDesignRef.current.nodeHaloOpacity * 0.42],
           "circle-blur": 0.82,
         },
       });
@@ -1237,10 +1307,10 @@ export default function MapLibreCrystalMap({
         paint: {
           "circle-radius": ["case", ["boolean", ["get", "focused"], false], mapDesignRef.current.nodeCoreFocused, mapDesignRef.current.nodeCoreIdle],
           "circle-color": ["get", "color"],
-          "circle-opacity": ["case", ["boolean", ["get", "focused"], false], mapDesignRef.current.nodeCoreOpacity, mapDesignRef.current.nodeCoreOpacity * 0.82],
+          "circle-opacity": mapDesignRef.current.logoMarkerEnabled ? 0 : ["case", ["boolean", ["get", "focused"], false], mapDesignRef.current.nodeCoreOpacity, mapDesignRef.current.nodeCoreOpacity * 0.82],
           "circle-stroke-color": "#ffffff",
           "circle-stroke-width": ["case", ["boolean", ["get", "focused"], false], 2.2, 1.2],
-          "circle-stroke-opacity": 0.86,
+          "circle-stroke-opacity": mapDesignRef.current.logoMarkerEnabled ? 0 : 0.86,
         },
       });
 
@@ -1260,7 +1330,7 @@ export default function MapLibreCrystalMap({
           "text-color": "#ffffff",
           "text-halo-color": "#001011",
           "text-halo-width": 1.4,
-          "text-opacity": 0.95,
+          "text-opacity": 0,
         },
       });
 
@@ -1329,6 +1399,7 @@ export default function MapLibreCrystalMap({
       const point = { x: event.point.x, y: event.point.y };
 
       if (buildingRafRef.current) cancelAnimationFrame(buildingRafRef.current);
+      if (overlayRafRef.current) cancelAnimationFrame(overlayRafRef.current);
 
       buildingRafRef.current = requestAnimationFrame(() => {
         updateHoveredBuildings(point);
@@ -1381,6 +1452,7 @@ export default function MapLibreCrystalMap({
     updateConnectionSource(focusId, activatedNodesRef.current);
     updateNodeSource(focusId, activatedNodesRef.current);
     updateScreenConnectionOverlay(focusId, activatedNodesRef.current);
+    updateNodeScreenPositions();
   }, [mapDesign, ready]);
 
   useEffect(() => {
@@ -1398,8 +1470,34 @@ export default function MapLibreCrystalMap({
         curve: 1.25,
         essential: true,
       });
+      updateNodeScreenPositions();
     }, 120);
   }, [visible]);
+
+  function updateNodeScreenPositions() {
+    const map = mapRef.current;
+    if (!map) return;
+    setNodeScreenPositions(projectMapNodes(map));
+  }
+
+  function handleMarkerEnter(node) {
+    setHovered(node.id);
+    setCurrent(node);
+    updateConnectionSource(node.id);
+    updateNodeSource(node.id);
+  }
+
+  function handleMarkerLeave() {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    const currentNode = currentRef.current;
+    setHovered(null);
+    updateConnectionSource(currentNode.id);
+    updateNodeSource(currentNode.id);
+  }
 
   function handleMouseMove(event) {
     if (!stageRef.current) return;
@@ -1427,6 +1525,443 @@ export default function MapLibreCrystalMap({
       }}
     >
       <div ref={mapContainer} className="mlMapCanvas" />
+
+      <style>{`
+        /* v5: water/terrain band overlays removed completely. */
+
+
+        /* FINAL MAP BAND KILL SWITCH: imported CSS may still define these as absolute overlays. */
+        .mapLibreCrystalStage .mlCityGlow,
+        .mapLibreCrystalStage .mlMapLight,
+        .mapLibreCrystalStage .mlCrystalField,
+        .mapLibreCrystalStage .mlScanGrid,
+        .mapLibreCrystalStage .mlHeavyVignette,
+        .mapLibreCrystalStage .mlTerrainMask,
+        .mapLibreCrystalStage .mlWaterVeil {
+          display: none !important;
+          opacity: 0 !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+        }
+
+        .mlLogoMarkerLayer {
+          position: absolute;
+          inset: 0;
+          z-index: 40;
+          pointer-events: none;
+          background: transparent;
+          filter: none;
+        }
+
+        .mlLogoMarker {
+          position: absolute;
+          width: auto !important;
+          height: auto !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          min-height: 0 !important;
+          max-height: none !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          border: 0 !important;
+          outline: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+          appearance: none !important;
+          -webkit-appearance: none !important;
+          pointer-events: auto;
+          transform: translate(-50%, -50%);
+          cursor: pointer;
+          color: #eafffb;
+          overflow: visible !important;
+          transition: transform 180ms ease, filter 180ms ease, opacity 180ms ease;
+        }
+
+        .mlLogoMarkerInner {
+          position: relative;
+          display: grid;
+          place-items: center;
+          width: var(--logo-size);
+          height: var(--logo-size);
+          border-radius: 999px;
+          isolation: isolate;
+          overflow: visible;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .mlHoverPin,
+        .mlHoverRing {
+          display: none !important;
+          opacity: 0 !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+          animation: none !important;
+        }
+
+        .mlLogoMarkerInner::before {
+          content: "";
+          position: absolute;
+          inset: -12px;
+          border-radius: 999px;
+          background:
+            radial-gradient(
+              circle at 50% 50%,
+              color-mix(in srgb, var(--node-color) 36%, white) 0%,
+              color-mix(in srgb, var(--node-color) 22%, transparent) 34%,
+              transparent 72%
+            );
+          filter: blur(12px);
+          opacity: 0.72;
+          z-index: 0;
+          pointer-events: none;
+          transform: scale(0.92);
+          transition: opacity 220ms ease, transform 220ms ease, filter 220ms ease;
+        }
+
+        .mlLogoMarkerInner::after {
+          content: "";
+          position: absolute;
+          inset: -4px;
+          border-radius: 999px;
+          background:
+            linear-gradient(
+              135deg,
+              transparent 0%,
+              rgba(255,255,255,0.28) 34%,
+              transparent 48%,
+              rgba(255,255,255,0.08) 62%,
+              transparent 100%
+            );
+          mix-blend-mode: screen;
+          opacity: 0.34;
+          z-index: 3;
+          pointer-events: none;
+          transform: rotate(-18deg);
+          transition: opacity 220ms ease, transform 220ms ease;
+        }
+
+        .mlLogoMarkerIcon {
+          position: relative;
+          width: var(--logo-size);
+          height: var(--logo-size);
+          object-fit: contain;
+          display: block;
+          opacity: var(--logo-opacity);
+          z-index: 2;
+          filter:
+            drop-shadow(0 0 8px color-mix(in srgb, var(--node-color) 78%, transparent))
+            drop-shadow(0 0 var(--logo-glow) color-mix(in srgb, var(--node-color) 68%, transparent))
+            drop-shadow(0 8px 18px rgba(0,0,0,0.58));
+          transition: width 180ms ease, height 180ms ease, transform 180ms ease, filter 180ms ease, opacity 180ms ease;
+        }
+
+        .mlLogoMarkerFallback {
+          position: relative;
+          width: var(--logo-size);
+          height: var(--logo-size);
+          border-radius: 999px;
+          border: 1px solid color-mix(in srgb, var(--node-color) 70%, white);
+          background:
+            radial-gradient(circle at 50% 42%, rgba(255,255,255,0.9), var(--node-color) 28%, rgba(4,18,20,0.88) 72%);
+          box-shadow:
+            0 0 var(--logo-glow) color-mix(in srgb, var(--node-color) 78%, transparent),
+            inset 0 0 16px rgba(255,255,255,0.20);
+          color: rgba(0, 14, 16, 0.82);
+          font-size: 10px;
+          font-weight: 800;
+          display: grid;
+          place-items: center;
+          z-index: 2;
+        }
+
+        .mlLogoMarkerLabel {
+          position: absolute;
+          top: calc(100% + 10px);
+          left: 50%;
+          transform: translateX(-50%);
+          white-space: nowrap;
+          color: rgba(240,255,252,var(--label-opacity));
+          font-size: 8px;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          text-shadow:
+            0 0 16px rgba(0,0,0,0.9),
+            0 0 14px color-mix(in srgb, var(--node-color) 60%, transparent);
+          opacity: 0;
+          transition: opacity 160ms ease, transform 160ms ease;
+          pointer-events: none;
+        }
+
+        .mlLogoMarker.is-hovered .mlLogoMarkerLabel,
+        .mlLogoMarker.is-active .mlLogoMarkerLabel {
+          opacity: 1;
+          transform: translateX(-50%) translateY(1px);
+        }
+
+        .mlLogoMarker:hover .mlLogoMarkerInner::before,
+        .mlLogoMarker.is-hovered .mlLogoMarkerInner::before {
+          opacity: 1;
+          transform: scale(1.14);
+          filter: blur(15px);
+        }
+
+        .mlLogoMarker:hover .mlLogoMarkerInner::after,
+        .mlLogoMarker.is-hovered .mlLogoMarkerInner::after {
+          opacity: 0.62;
+          transform: rotate(12deg) scale(1.12);
+        }
+
+        .mlLogoMarker:hover .mlLogoMarkerIcon,
+        .mlLogoMarker.is-hovered .mlLogoMarkerIcon {
+          width: var(--logo-hover-size);
+          height: var(--logo-hover-size);
+          transform: scale(1.06);
+          filter:
+            drop-shadow(0 0 12px color-mix(in srgb, var(--node-color) 90%, white))
+            drop-shadow(0 0 calc(var(--logo-glow) * 1.35) color-mix(in srgb, var(--node-color) 82%, transparent))
+            drop-shadow(0 0 22px rgba(255,255,255,0.24))
+            drop-shadow(0 10px 22px rgba(0,0,0,0.62));
+        }
+
+        .mlLogoMarker.is-active .mlLogoMarkerInner::before {
+          opacity: 1;
+          transform: scale(1.22);
+          filter: blur(18px);
+        }
+
+        .mlLogoMarker.is-active .mlLogoMarkerIcon {
+          width: var(--logo-active-size);
+          height: var(--logo-active-size);
+          transform: scale(1.08);
+          filter:
+            drop-shadow(0 0 14px color-mix(in srgb, var(--node-color) 100%, white))
+            drop-shadow(0 0 calc(var(--logo-glow) * 1.55) color-mix(in srgb, var(--node-color) 88%, transparent))
+            drop-shadow(0 0 28px rgba(255,255,255,0.28))
+            drop-shadow(0 12px 26px rgba(0,0,0,0.65));
+        }
+      
+
+        /* V17 PLAIN ICONS: no glow, no aura, no hover ring, no shimmer. */
+        .mlHoverPin,
+        .mlHoverRing {
+          display: none !important;
+          opacity: 0 !important;
+          animation: none !important;
+        }
+
+        .mlLogoMarker {
+          width: auto !important;
+          height: auto !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          border: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+          filter: none !important;
+        }
+
+        .mlLogoMarkerInner {
+          width: var(--logo-size) !important;
+          height: var(--logo-size) !important;
+          border: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          filter: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+
+        .mlLogoMarkerInner::before,
+        .mlLogoMarkerInner::after {
+          display: none !important;
+          content: none !important;
+          opacity: 0 !important;
+          animation: none !important;
+        }
+
+        .mlLogoMarkerIcon {
+          width: var(--logo-size) !important;
+          height: var(--logo-size) !important;
+          object-fit: contain !important;
+          opacity: var(--logo-opacity) !important;
+          filter: none !important;
+          box-shadow: none !important;
+          transform: none !important;
+          transition: width 140ms ease, height 140ms ease, opacity 140ms ease !important;
+        }
+
+        .mlLogoMarker:hover .mlLogoMarkerIcon,
+        .mlLogoMarker.is-hovered .mlLogoMarkerIcon {
+          width: var(--logo-hover-size) !important;
+          height: var(--logo-hover-size) !important;
+          filter: none !important;
+          box-shadow: none !important;
+          transform: none !important;
+        }
+
+        .mlLogoMarker.is-active .mlLogoMarkerIcon {
+          width: var(--logo-active-size) !important;
+          height: var(--logo-active-size) !important;
+          filter: none !important;
+          box-shadow: none !important;
+          transform: none !important;
+        }
+
+        .mlLogoMarkerFallback {
+          box-shadow: none !important;
+          filter: none !important;
+        }
+
+
+        /* V52: larger crystal icons + stable hover circle + larger hit area */
+        .mlLogoMarker {
+          min-width: calc(var(--logo-hover-size) + 38px) !important;
+          min-height: calc(var(--logo-hover-size) + 38px) !important;
+          display: grid !important;
+          place-items: center !important;
+          touch-action: manipulation !important;
+        }
+
+        .mlLogoMarkerInner {
+          width: var(--logo-size) !important;
+          height: var(--logo-size) !important;
+        }
+
+        .mlLogoMarkerRing {
+          display: block !important;
+          visibility: visible !important;
+          position: absolute !important;
+          left: 50% !important;
+          top: 50% !important;
+          width: var(--ring-size) !important;
+          height: var(--ring-size) !important;
+          border-radius: 999px !important;
+          transform: translate(-50%, -50%) scale(0.88) !important;
+          border: var(--ring-thickness) solid color-mix(in srgb, var(--node-color) 62%, white) !important;
+          background:
+            radial-gradient(circle, color-mix(in srgb, var(--node-color) 14%, transparent), transparent 64%),
+            rgba(2, 10, 11, 0.04) !important;
+          box-shadow:
+            0 0 var(--ring-glow) color-mix(in srgb, var(--node-color) 38%, transparent),
+            inset 0 0 26px rgba(255,255,255,0.035) !important;
+          opacity: 0 !important;
+          z-index: 1 !important;
+          pointer-events: none !important;
+          transition: opacity 160ms ease, transform 160ms ease !important;
+          animation: none !important;
+        }
+
+        .mlLogoMarker:hover .mlLogoMarkerRing,
+        .mlLogoMarker.is-hovered .mlLogoMarkerRing,
+        .mlLogoMarker.is-active .mlLogoMarkerRing {
+          opacity: var(--ring-opacity) !important;
+          transform: translate(-50%, -50%) scale(1) !important;
+        }
+
+        .mlLogoMarkerIcon {
+          width: var(--logo-size) !important;
+          height: var(--logo-size) !important;
+          transform: scale(1) !important;
+        }
+
+        .mlLogoMarker:hover .mlLogoMarkerIcon,
+        .mlLogoMarker.is-hovered .mlLogoMarkerIcon {
+          width: var(--logo-hover-size) !important;
+          height: var(--logo-hover-size) !important;
+          transform: scale(1.04) !important;
+        }
+
+        .mlLogoMarker.is-active .mlLogoMarkerIcon {
+          width: var(--logo-active-size) !important;
+          height: var(--logo-active-size) !important;
+          transform: scale(1.04) !important;
+        }
+
+      `}</style>
+
+      {mapDesign.logoMarkerEnabled && (
+        <div className="mlLogoMarkerLayer" aria-hidden={false}>
+          {nodeScreenPositions.map((node) => {
+            const isHovered = hovered === node.id;
+            const isActive = false;
+            return (
+              <button
+                key={node.id}
+                type="button"
+                className={`mlLogoMarker ${isHovered ? "is-hovered" : ""} ${isActive ? "is-active" : ""} ${mapDesign.hoverRingPulseEnabled ? "is-pulse" : ""}`}
+                style={{
+                  left: node.x,
+                  top: node.y + mapDesign.logoYOffset,
+                  "--node-color": node.color,
+                  "--logo-size": `${mapDesign.logoSize}px`,
+                  "--logo-hover-size": `${mapDesign.logoHoverSize}px`,
+                  "--logo-active-size": `${mapDesign.logoActiveSize}px`,
+                  "--logo-opacity": mapDesign.logoOpacity,
+                  "--logo-glow": `${mapDesign.logoGlow}px`,
+                  "--ring-size": `${mapDesign.hoverRingSize}px`,
+                  "--ring-opacity": mapDesign.hoverRingEnabled ? mapDesign.hoverRingOpacity : 0,
+                  "--ring-thickness": `${mapDesign.hoverRingThickness}px`,
+                  "--ring-glow": `${mapDesign.hoverRingGlow}px`,
+                  "--label-opacity": mapDesign.logoLabelOpacity,
+                }}
+                onMouseEnter={() => handleMarkerEnter(node)}
+                onMouseLeave={handleMarkerLeave}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                onMouseUp={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  selectNode(node);
+                }}
+                onDoubleClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  openPanorama(node);
+                }}
+                onTouchStart={(event) => {
+                  event.preventDefault();
+                  startNodePress(node);
+                }}
+                onTouchEnd={(event) => {
+                  event.preventDefault();
+                  endNodePress(node);
+                }}
+              >
+                <span className="mlLogoMarkerInner">
+                  <span className="mlLogoMarkerRing" />
+                  <img
+                    className="mlLogoMarkerIcon"
+                    src={getCisternLogoPath(node)}
+                    alt=""
+                    draggable={false}
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                      const fallback = event.currentTarget.nextElementSibling;
+                      if (fallback) fallback.style.display = "grid";
+                    }}
+                  />
+                  <span className="mlLogoMarkerFallback" style={{ display: "none" }}>{node.number}</span>
+                  {mapDesign.logoLabelVisible && (
+                    <span className="mlLogoMarkerLabel">{node.shortName}</span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
 
       {mapDesign.svgConnectionOverlay && (
       <svg className="mlConnectionSvg" aria-hidden="true">
@@ -1465,13 +2000,7 @@ export default function MapLibreCrystalMap({
       </svg>
       )}
 
-      <div className="mlCityGlow" style={{ opacity: mapDesign.fxOpacity }} />
-      <div className="mlMapLight" style={{ opacity: mapDesign.fxOpacity }} />
-      <div className="mlTerrainMask" style={{ opacity: mapDesign.fxOpacity }} />
-      <div className="mlWaterVeil" style={{ opacity: mapDesign.fxOpacity }} />
-      <div className="mlCrystalField" style={{ opacity: mapDesign.fxOpacity }} />
-      <div className="mlScanGrid" style={{ opacity: mapDesign.fxOpacity }} />
-      <div className="mlHeavyVignette" style={{ opacity: mapDesign.vignetteOpacity }} />
+      {/* Map FX overlays removed: no horizontal bands, only map + PNG markers + UI. */}
 
       <header className="mlHeader">
         <div className="mlBrand">
@@ -1549,9 +2078,9 @@ export default function MapLibreCrystalMap({
       </nav>
       )}
 
-      {hoverNode && mode === MODES.MAP && (
+      {!mapDesign.logoMarkerEnabled && hoverNode && mode === MODES.MAP && (
         <div className="mlHoverPin" style={{ "--hover-color": hoverNode.color }}>
-          <div className="mlHoverRing">
+          <div className="mlHoverRing" style={{ animation: mapDesign.hoverRingPulseEnabled ? undefined : "none" }}>
             <div>
               <span>{hoverNode.shortName}</span>
               <b>{hoverNode.role}</b>
