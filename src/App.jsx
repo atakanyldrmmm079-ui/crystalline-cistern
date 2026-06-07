@@ -326,6 +326,25 @@ function useScrollProgress() {
   return scroll;
 }
 
+
+function useScrollDirection(scroll) {
+  const previousRef = useRef(scroll);
+  const [direction, setDirection] = useState("down");
+
+  useEffect(() => {
+    const previous = previousRef.current;
+    const delta = scroll - previous;
+
+    if (Math.abs(delta) > 0.0012) {
+      setDirection(delta < 0 ? "up" : "down");
+      previousRef.current = scroll;
+    }
+  }, [scroll]);
+
+  return direction;
+}
+
+
 function attachColumnColorShader(mat, design) {
   if (!mat || mat.userData?.columnTintInstalled) return;
 
@@ -537,7 +556,17 @@ function CameraRig({ scroll, selected, design }) {
     const chamberProgress = smooth01(range(scroll, design.chamberStart, design.chamberEnd));
     const mapProgress = smooth01(range(scroll, design.mapStart, design.mapEnd));
 
-    const selectedNode = getNode(selected);
+    
+  // Reverse-scroll safety:
+  // When coming back from the map, use a slightly earlier virtual scroll value
+  // for portal/map transition so the portal does not jump forward before rewinding.
+  const reverseSafeScroll =
+    scrollDirection === "up" && scroll > mapVisualStart - 0.035
+      ? Math.max(0, scroll - 0.018)
+      : scroll;
+
+  const mapProgressStable = smooth01(range01(reverseSafeScroll, mapVisualStart, 0.985));
+const selectedNode = getNode(selected);
     const mapX = selectedNode ? (selectedNode.ui[0] - 50) * 0.01 : 0;
     const mapY = selectedNode ? (50 - selectedNode.ui[1]) * 0.006 : 0;
 
@@ -3368,6 +3397,7 @@ function IntroOnlyScene({ scroll, design, hovered, selected }) {
 
 export default function App() {
   const scroll = useScrollProgress();
+  const scrollDirection = useScrollDirection(scroll);
   const isMobileViewport = useIsMobileViewport();
   const isCompactViewport = useIsCompactViewport();
   const criticalSceneAssetsReady = true;
@@ -3623,7 +3653,7 @@ export default function App() {
     // Mount SceneLab early while invisible so procedural column textures are ready
     // before the user reaches the SceneLab section.
     scroll >= design.cisternEnterStart - 0.22 &&
-    mapProgress < 0.58;
+    mapProgressStable < 0.58;
 
   const shouldMountMap =
     scroll >= mapVisualStart + 0.038 &&
@@ -3637,7 +3667,7 @@ export default function App() {
   const shouldRenderIntro = introOpacity > 0.012 && cisternOpacity < 0.08 && mapProgress < 0.02;
   const introInteractive = shouldRenderIntro;
   const cisternInteractive = mapProgress < 0.72;
-  const mapInteractive = mapProgress > 0.30;
+  const mapInteractive = mapProgressStable > 0.30;
   const shouldShowExternalStory = shouldRenderStory;
 return (
     <main
@@ -3699,7 +3729,7 @@ return (
               scrollProgress={labScrollProgress}
               visibleProgress={Math.max(cisternOpacity, 0.04)}
               portalProgress={portalProgress}
-              mapProgress={mapProgress}
+              mapProgress={mapProgressStable}
               designMode={false}
               showStory={true}
               showLabel={false}
