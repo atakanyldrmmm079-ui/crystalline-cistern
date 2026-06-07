@@ -1877,7 +1877,7 @@ function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 
   const pointerTargetRef = useRef(new THREE.Vector2(0, 0));
   const pointerUniformRef = useRef(new THREE.Vector2(0, 0));
 
-  const defaultCount = mobile ? 260 : 520;
+  const defaultCount = mobile ? 240 : 480;
 
   const {
     particleEnabled,
@@ -1908,7 +1908,7 @@ function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 
     particleBurstDecay,
   } = useControls("Scattering Particles", {
     particleEnabled: true,
-    particleCount: { value: defaultCount, min: 120, max: 1600, step: 40 },
+    particleCount: { value: defaultCount, min: 120, max: 1400, step: 40 },
     particleOpacity: { value: mobile ? 0.26 : 0.34, min: 0, max: 1, step: 0.01 },
     particleSize: { value: 0.058, min: 0.01, max: 0.22, step: 0.001 },
     particleSpeed: { value: 0.28, min: 0, max: 1.4, step: 0.01 },
@@ -3636,7 +3636,7 @@ export default function CisternSceneLab({
     useControls("Scene", {
       autoCamera: true,
       exposure: { value: 1.18, min: 0.1, max: 2.4, step: 0.01 },
-      bloom: { value: mobile ? 0.28 : 0.38, min: 0, max: 2, step: 0.01 },
+      bloom: { value: mobile ? 0.26 : 0.34, min: 0, max: 2, step: 0.01 },
       vignette: { value: 0.48, min: 0, max: 1, step: 0.01 },
       fogNear: { value: 8.4, min: 0, max: 25, step: 0.1 },
       fogFar: { value: 38, min: 5, max: 90, step: 0.5 },
@@ -3652,9 +3652,9 @@ export default function CisternSceneLab({
     portalDistortion: { value: !mobile },
     contactShadows: { value: false },
     sparkles: { value: true },
-    sparkleCount: { value: mobile ? 4 : 10, min: 0, max: 60, step: 1 },
+    sparkleCount: { value: mobile ? 3 : 8, min: 0, max: 48, step: 1 },
     frameloopAlways: { value: true },
-    lowPowerDpr: { value: mobile ? 0.82 : 0.98, min: 0.65, max: 1.15, step: 0.05 },
+    lowPowerDpr: { value: mobile ? 0.78 : 0.94, min: 0.65, max: 1.10, step: 0.05 },
   });
 
   const [activeModeIndex, setActiveModeIndex] = useState(0);
@@ -3696,7 +3696,7 @@ export default function CisternSceneLab({
 
       <Canvas
         shadows={perf.contactShadows}
-        dpr={[0.7, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.82 : 0.98)]}
+        dpr={[0.68, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.78 : 0.94)]}
         eventSource={rootRef}
         eventPrefix="client"
         onCreated={(state) => {
@@ -3716,8 +3716,8 @@ export default function CisternSceneLab({
           near: 0.1,
           far: 80,
         }}
-        frameloop={labOpacity > 0.015 && mapProgress < 0.86 ? "always" : "demand"}
-        performance={{ min: mobile ? 0.38 : 0.50 }}
+        frameloop={labOpacity > 0.02 && mapProgress < 0.68 ? "always" : "demand"}
+        performance={{ min: mobile ? 0.34 : 0.46 }}
         gl={{
           antialias: false,
           stencil: false,
