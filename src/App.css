@@ -5103,3 +5103,31 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
     radial-gradient(circle at 50% 48%, rgba(127,255,238,0.035), transparent 34%),
     rgba(2, 8, 9, 0.46) !important;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V115 TEXTURE WARMUP + SHARPNESS                                             */
+/* -------------------------------------------------------------------------- */
+/* Keeps v83/v114 visual tone. Adds texture cache warmup and moderate crispness. */
+
+.cisternSceneHost canvas,
+.introSceneLayer canvas,
+.mapRevealLayer canvas {
+  image-rendering: auto !important;
+  transform: translateZ(0);
+}
+
+/* Keep the original dark look; do not re-add brightness filters. */
+.cisternSceneHost,
+.site.isCompactLayout:not(.isMobileLayout) .cisternSceneHost,
+.site.isMobileLayout .cisternSceneHost {
+  filter: none !important;
+}
+
+/* Slightly crisper crystal/story edges without changing scene lighting. */
+.gsapSafeStory,
+.cinematicStoryLayer,
+.cisternSceneHost {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
