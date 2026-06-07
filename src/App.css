@@ -5106,12 +5106,17 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
 
 
 /* -------------------------------------------------------------------------- */
-/* V116 COLUMN NO-TEXTURE FALLBACK                                             */
+/* V117 RESTORE V83 SCENELAB / REMOVE TEXTURE EXPERIMENTS                      */
 /* -------------------------------------------------------------------------- */
-/* Texture warmup caused SceneLab entry lag and still did not solve white columns.
-   This version does NOT wait for procedural column textures. It gives columns a
-   one-time dark stone fallback so they never appear pure white. */
+/* CisternSceneLab.jsx is restored from v83 exactly.
+   All later texture warmup/material fallback experiments are disabled. */
+.sceneWarmupVeil {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
 
+/* Keep v83 SceneLab visual tone. */
 .cisternSceneHost,
 .site.isCompactLayout:not(.isMobileLayout) .cisternSceneHost,
 .site.isMobileLayout .cisternSceneHost {
