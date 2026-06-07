@@ -1877,7 +1877,7 @@ const points = useRef();
   const pointerTargetRef = useRef(new THREE.Vector2(0, 0));
   const pointerUniformRef = useRef(new THREE.Vector2(0, 0));
 
-  const defaultCount = mobile ? 150 : 320;
+  const defaultCount = mobile ? 140 : 260;
 
   const {
     particleEnabled,
@@ -1909,7 +1909,7 @@ const points = useRef();
   } = useControls("Scattering Particles", {
     particleEnabled: true,
     particleCount: { value: defaultCount, min: 60, max: 900, step: 20 },
-    particleOpacity: { value: mobile ? 0.38 : 0.54, min: 0, max: 1, step: 0.01 },
+    particleOpacity: { value: mobile ? 0.32 : 0.40, min: 0, max: 1, step: 0.01 },
     particleSize: { value: 0.058, min: 0.01, max: 0.22, step: 0.001 },
     particleSpeed: { value: 0.28, min: 0, max: 1.4, step: 0.01 },
     particleHeight: { value: 2.95, min: 0.6, max: 7.5, step: 0.05 },
@@ -3658,7 +3658,7 @@ function tuneLoadedSceneMaterials(root, gl) {
         material.color.g > 0.92 &&
         material.color.b > 0.92
       ) {
-        material.color.set("#bff8ef");
+        material.color.set("#ffffff");
       }
 
       material.needsUpdate = true;
@@ -3709,12 +3709,12 @@ function normalizeProceduralColumnMaterial(material, index = 0) {
   // If the generated material is pure white / flat, tint it toward old cistern stone.
   if (material.color && material.color.r > 0.88 && material.color.g > 0.88 && material.color.b > 0.88) {
     const shade = 0.78 + (index % 7) * 0.025;
-    material.color.set("#8ba9a3").multiplyScalar(shade);
+    material.color.set("#56635f").multiplyScalar(shade);
   }
 
   material.roughness = Math.max(material.roughness ?? 0.8, 0.88);
-  material.metalness = Math.min(material.metalness ?? 0.05, 0.05);
-  material.envMapIntensity = Math.min(material.envMapIntensity ?? 0.18, 0.22);
+  material.metalness = material.metalness ?? 0.02;
+  material.envMapIntensity = Math.min(material.envMapIntensity ?? 0.10, 0.14);
   material.toneMapped = true;
   material.needsUpdate = true;
 
@@ -3808,16 +3808,16 @@ function normalizeProceduralTexturedColumn(object, index = 0) {
     if (material.map) {
       applyProceduralTextureSettings(material.map);
       // When map exists, don't leave material over-white; let texture show.
-      if (material.color) material.color.set("#d6eee8");
+      if (material.color) material.color.set("#ffffff");
     } else if (material.color) {
       // Texture is not ready yet: use stone-tinted fallback, never pure white.
       const shade = 0.74 + (index % 6) * 0.035;
-      material.color.set("#8fa9a4").multiplyScalar(shade);
+      material.color.set("#56635f").multiplyScalar(shade);
     }
 
-    material.roughness = Math.max(material.roughness ?? 0.86, 0.86);
-    material.metalness = Math.min(material.metalness ?? 0.04, 0.04);
-    material.envMapIntensity = Math.min(material.envMapIntensity ?? 0.18, 0.22);
+    material.roughness = material.roughness ?? 0.78;
+    material.metalness = material.metalness ?? 0.02;
+    material.envMapIntensity = Math.min(material.envMapIntensity ?? 0.10, 0.14);
     material.toneMapped = true;
     material.needsUpdate = true;
   });
@@ -3881,8 +3881,8 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
   const { autoCamera, exposure, bloom, vignette, fogNear, fogFar, dprMax } =
     useControls("Scene", {
       autoCamera: true,
-      exposure: { value: 1.48, min: 0.1, max: 2.4, step: 0.01 },
-      bloom: { value: mobile ? 0.18 : 0.34, min: 0, max: 2, step: 0.01 },
+      exposure: { value: 1.04, min: 0.1, max: 2.4, step: 0.01 },
+      bloom: { value: mobile ? 0.18 : 0.28, min: 0, max: 2, step: 0.01 },
       vignette: { value: 0.48, min: 0, max: 1, step: 0.01 },
       fogNear: { value: 8.4, min: 0, max: 25, step: 0.1 },
       fogFar: { value: 38, min: 5, max: 90, step: 0.5 },
@@ -3977,7 +3977,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
           <RendererSettings exposure={exposure} />
           <SceneWarmup enabled={visibleProgress > 0.02} />
 
-          <ambientLight intensity={0.82} />
+          <ambientLight intensity={0.58} />
         <SceneMaterialWarmup />
         <ProceduralColumnMaterialPass />
         <ProceduralTextureReadyPass />
