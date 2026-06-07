@@ -4207,3 +4207,82 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
     height: 100% !important;
   }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V97 RESTORE DESKTOP CRYSTAL PANEL                                           */
+/* -------------------------------------------------------------------------- */
+/* Desktop/web crystal analyze/info panel is restored.
+   Mobile still disables SceneLab internal panels via component logic, not broad CSS. */
+@media (min-width: 901px) {
+  .cisternSceneHost {
+    pointer-events: auto !important;
+  }
+
+  .cisternSceneHost [class*="readout" i],
+  .cisternSceneHost [class*="analyze" i],
+  .cisternSceneHost [class*="info" i],
+  .cisternSceneHost [class*="panel" i],
+  .cisternSceneHost button,
+  .cisternSceneHost aside {
+    visibility: visible;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V98 INTEL SAFE PERFORMANCE                                                  */
+/* -------------------------------------------------------------------------- */
+/* Presentation-safe performance for Intel / integrated GPU machines.
+   Keeps the project stable and smooth; avoids high DPR and expensive overlays. */
+
+.cisternSceneHost canvas,
+.introSceneLayer canvas {
+  image-rendering: auto !important;
+}
+
+.rainGlass,
+.mouseTrail {
+  display: none !important;
+}
+
+.noise {
+  opacity: 0.006 !important;
+}
+
+.shade {
+  opacity: 0.12 !important;
+}
+
+/* Blur/backdrop filters are expensive on school laptops; reduce them globally. */
+.cinematicStoryCard,
+.gsapSafeStoryCard,
+.mapMissionInner,
+.soundToggle {
+  backdrop-filter: blur(3px) !important;
+  -webkit-backdrop-filter: blur(3px) !important;
+}
+
+/* Keep the visual style through opacity/glow rather than GPU-heavy blur. */
+.gsapSafeStory .storyChar.isStrong {
+  text-shadow:
+    0 0 8px rgba(150,255,242,0.30),
+    0 0 18px rgba(150,255,242,0.13),
+    0 2px 12px rgba(0,0,0,0.72) !important;
+}
+
+.gsapSafeStory .storyChar.isMuted {
+  color: rgba(190, 214, 209, 0.50) !important;
+}
+
+@media (max-width: 900px) {
+  .site.isMobileLayout .viewport::after {
+    background:
+      radial-gradient(circle at 50% 46%, rgba(96,255,235,0.035), transparent 36%),
+      linear-gradient(180deg, rgba(0,0,0,0.10), transparent 26%, rgba(0,0,0,0.20)) !important;
+  }
+
+  .site.isMobileLayout .cisternSceneHost {
+    filter: saturate(1.02) contrast(1.01) !important;
+  }
+}
