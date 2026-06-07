@@ -3637,7 +3637,7 @@ export default function App() {
   const shouldRenderIntro = introOpacity > 0.012 && cisternOpacity < 0.08 && mapProgress < 0.02;
   const introInteractive = shouldRenderIntro;
   const cisternInteractive = mapProgress < 0.72;
-  const mapInteractive = mapProgress > 0.94;
+  const mapInteractive = mapProgress > 0.38;
   const shouldShowExternalStory = shouldRenderStory;
 return (
     <main
