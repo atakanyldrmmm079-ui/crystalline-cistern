@@ -3623,7 +3623,7 @@ function SceneContent({
 
 
 export default function CisternSceneLab({
-  scrollProgress = 0,
+scrollProgress = 0,
   visibleProgress = 1,
   portalProgress = 0,
   mapProgress = 0,
@@ -3631,6 +3631,10 @@ export default function CisternSceneLab({
   showStory = true,
   showLabel = true,
   showLeva = false,
+  showInfoPanel = true,
+  showAnalyzePanel = true,
+  showCrystalInfo = true,
+  showMobilePanels = true,
 } = {}) {
   const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")));
 
@@ -3673,7 +3677,7 @@ export default function CisternSceneLab({
 
   // Panel now opens from the crystal click itself.
   // This avoids depending on App.jsx showStory flags while keeping Leva control.
-  const storyVisible = storyControls.showStoryControl && storyPanelOpen && mapProgress < 0.52;
+  const storyVisible = (!mobile && showStory && showInfoPanel && showAnalyzePanel && showCrystalInfo && showMobilePanels) && storyControls.showStoryControl && storyPanelOpen && mapProgress < 0.52;
   const labOpacity = THREE.MathUtils.clamp(visibleProgress, 0, 1);
   const rootRef = useRef(null);
 
@@ -3688,7 +3692,7 @@ export default function CisternSceneLab({
         overflow: "hidden",
         background: "#020b0a",
         opacity: labOpacity,
-        pointerEvents: mapProgress < 0.52 ? "auto" : "none",
+        pointerEvents: (!mobile && showStory && showInfoPanel && showAnalyzePanel && showCrystalInfo && showMobilePanels) && mapProgress < 0.52 ? "auto" : "none",
         isolation: "isolate",
         touchAction: "none",
         zIndex: 1,
