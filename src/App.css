@@ -5142,65 +5142,6 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
 
 
 /* -------------------------------------------------------------------------- */
-/* V121 RESTORE MAP HOVER                                                      */
-/* -------------------------------------------------------------------------- */
-/* Map hover broke because map pointer-events were enabled too late.
-   This restores hover/click on MapLibre markers once the map is visible. */
-
-.mapRevealLayer.visible,
-.mapRevealLayer[style*="pointer-events: auto"] {
-  pointer-events: auto !important;
-}
-
-.mapRevealLayer.visible *,
-.mapRevealLayer.visible canvas,
-.mapRevealLayer.visible .maplibregl-map,
-.mapRevealLayer.visible .maplibregl-canvas-container,
-.mapRevealLayer.visible .maplibregl-marker,
-.mapRevealLayer.visible .mlLogoMarker,
-.mapRevealLayer.visible .mlLogoMarkerIcon,
-.mapRevealLayer.visible .mlCisternMarker,
-.mapRevealLayer.visible .cisternMarker,
-.mapRevealLayer.visible .mapMarker {
-  pointer-events: auto !important;
-}
-
-/* Make sure decorative marker children don't block parent hover logic incorrectly. */
-.mapRevealLayer .mlLogoMarker,
-.mapRevealLayer .maplibregl-marker {
-  cursor: pointer !important;
-  pointer-events: auto !important;
-}
-
-.mapRevealLayer .mlLogoMarkerIcon,
-.mapRevealLayer .mlLogoMarker *,
-.mapRevealLayer .maplibregl-marker * {
-  pointer-events: auto !important;
-}
-
-/* Restore visual hover scale/glow for logo markers even if older CSS got overridden. */
-.mapRevealLayer .mlLogoMarker:hover,
-.mapRevealLayer .maplibregl-marker:hover .mlLogoMarker,
-.mapLibreCrystalStage .mlLogoMarker:hover {
-  transform: translate(-50%, -50%) scale(1.08) !important;
-  filter:
-    drop-shadow(0 0 18px rgba(145,255,243,0.55))
-    drop-shadow(0 0 36px rgba(65,210,255,0.22)) !important;
-  z-index: 20 !important;
-}
-
-.mapRevealLayer .mlLogoMarker:hover .mlLogoMarkerIcon,
-.mapLibreCrystalStage .mlLogoMarker:hover .mlLogoMarkerIcon {
-  transform: scale(1.08) !important;
-  opacity: 1 !important;
-}
-
-.mapRevealLayer .maplibregl-canvas {
-  touch-action: pan-y !important;
-}
-
-
-/* -------------------------------------------------------------------------- */
 /* V122 MOBILE ANALYZE OFF                                                     */
 /* -------------------------------------------------------------------------- */
 /* Mobile must not show internal crystal analyze/info panels.
@@ -5236,52 +5177,6 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
 
 
 /* -------------------------------------------------------------------------- */
-/* V123 RESTORE MAP AREA / BUILDING HOVER                                      */
-/* -------------------------------------------------------------------------- */
-/* Restores the blue hover glow on the map geometry/building areas, not just
-   marker hover. Desktop MapLibre canvas must receive mousemove normally. */
-
-@media (min-width: 901px) {
-  .mapRevealLayer,
-  .mapRevealLayer.visible,
-  .mapRevealLayer .mapLibreCrystalStage,
-  .mapRevealLayer .maplibregl-map,
-  .mapRevealLayer .maplibregl-canvas-container,
-  .mapRevealLayer .maplibregl-canvas,
-  .mapLibreCrystalStage,
-  .mapLibreCrystalStage .maplibregl-map,
-  .mapLibreCrystalStage .maplibregl-canvas-container,
-  .mapLibreCrystalStage .maplibregl-canvas {
-    pointer-events: auto !important;
-    touch-action: auto !important;
-    cursor: grab;
-  }
-
-  .mapRevealLayer .maplibregl-canvas:hover,
-  .mapLibreCrystalStage .maplibregl-canvas:hover {
-    cursor: crosshair;
-  }
-}
-
-/* Marker hover still works, but marker rules must not block canvas mousemove. */
-.mapRevealLayer .maplibregl-marker,
-.mapLibreCrystalStage .maplibregl-marker,
-.mapRevealLayer .mlLogoMarker,
-.mapLibreCrystalStage .mlLogoMarker {
-  pointer-events: auto !important;
-}
-
-/* On mobile keep vertical scroll behavior. */
-@media (max-width: 900px) {
-  .mapRevealLayer,
-  .mapRevealLayer .maplibregl-canvas,
-  .mapLibreCrystalStage .maplibregl-canvas {
-    touch-action: pan-y !important;
-  }
-}
-
-
-/* -------------------------------------------------------------------------- */
 /* V124 MOBILE SHARPNESS ONLY                                                  */
 /* -------------------------------------------------------------------------- */
 /* Only mobile clarity is improved. Desktop/laptop visual tone remains v123. */
@@ -5310,51 +5205,91 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
 
 
 /* -------------------------------------------------------------------------- */
-/* V125 REAL MAP AREA HOVER RESTORE                                            */
+/* V127 RESTORE V100 MAP HOVER / NO MAP FILES                                  */
 /* -------------------------------------------------------------------------- */
-/* Restores the actual MapLibreCrystalMap.jsx/.css from v74, the last package
-   that still carried the real map hover/layer code. */
+/* Do not override MapLibre component internals. The real map files in the repo
+   stay untouched. This restores v100-style layer ownership so the map's own
+   hover logic can receive pointer/mousemove events normally. */
 
+/* Map layer only receives events in final visible phase, as in v100. */
+.mapRevealLayer {
+  z-index: 8000 !important;
+  pointer-events: none;
+}
+
+.mapRevealLayer.visible {
+  pointer-events: auto;
+}
+
+/* Let the actual map component/canvas handle hover. Do not force child rules. */
+.mapRevealLayer .maplibregl-map,
+.mapRevealLayer .maplibregl-canvas-container,
+.mapRevealLayer .maplibregl-canvas {
+  pointer-events: auto;
+}
+
+/* Keep desktop hover normal. */
 @media (min-width: 901px) {
   .mapRevealLayer,
   .mapRevealLayer.visible,
-  .mapRevealLayer .mapLibreCrystalStage,
   .mapRevealLayer .maplibregl-map,
   .mapRevealLayer .maplibregl-canvas-container,
-  .mapRevealLayer .maplibregl-canvas,
-  .mapLibreCrystalStage,
-  .mapLibreCrystalStage .maplibregl-map,
-  .mapLibreCrystalStage .maplibregl-canvas-container,
-  .mapLibreCrystalStage .maplibregl-canvas {
-    pointer-events: auto !important;
-    touch-action: auto !important;
-  }
-
-  .mapRevealLayer .maplibregl-canvas,
-  .mapLibreCrystalStage .maplibregl-canvas {
-    cursor: crosshair !important;
+  .mapRevealLayer .maplibregl-canvas {
+    touch-action: auto;
   }
 }
+
+/* Keep mobile scroll behavior. */
+@media (max-width: 900px) {
+  .mapRevealLayer .maplibregl-canvas {
+    touch-action: pan-y;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V128 MOBILE 1.10 CLARITY + REVERSE PORTAL                                   */
+/* -------------------------------------------------------------------------- */
+/* Mobile only: SceneLab clarity is raised; map touch interactions are disabled
+   so vertical scroll and reverse portal transition stay stable. */
 
 @media (max-width: 900px) {
-  .mapRevealLayer,
-  .mapRevealLayer .maplibregl-canvas,
-  .mapLibreCrystalStage .maplibregl-canvas {
+  .site.isMobileLayout .cisternSceneHost canvas {
+    image-rendering: auto !important;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  .site.isMobileLayout .cisternSceneHost {
+    filter: contrast(1.018) saturate(1.018) !important;
+  }
+
+  /* On mobile the map is visual/navigation, not a draggable canvas. */
+  .site.isMobileLayout .mapRevealLayer,
+  .site.isMobileLayout .mapRevealLayer.visible,
+  .site.isMobileLayout .mapRevealLayer .maplibregl-map,
+  .site.isMobileLayout .mapRevealLayer .maplibregl-canvas-container,
+  .site.isMobileLayout .mapRevealLayer .maplibregl-canvas,
+  .site.isMobileLayout .mapLibreCrystalStage,
+  .site.isMobileLayout .mapLibreCrystalStage .maplibregl-map,
+  .site.isMobileLayout .mapLibreCrystalStage .maplibregl-canvas-container,
+  .site.isMobileLayout .mapLibreCrystalStage .maplibregl-canvas {
+    pointer-events: none !important;
     touch-action: pan-y !important;
+  }
+
+  /* Markers can still be visually present; don't let map drag fight page scroll. */
+  .site.isMobileLayout .maplibregl-marker,
+  .site.isMobileLayout .mlLogoMarker,
+  .site.isMobileLayout .mlCisternMarker,
+  .site.isMobileLayout .cisternMarker,
+  .site.isMobileLayout .mapMarker {
+    pointer-events: none !important;
   }
 }
 
-/* Marker hover and map canvas hover must both be available. */
-.mapRevealLayer .maplibregl-marker,
-.mapLibreCrystalStage .maplibregl-marker,
-.mapRevealLayer .mlLogoMarker,
-.mapLibreCrystalStage .mlLogoMarker {
-  pointer-events: auto !important;
+@media (min-width: 901px) {
+  .cisternSceneHost {
+    filter: none !important;
+  }
 }
-
-
-/* -------------------------------------------------------------------------- */
-/* V126 REVERSE PORTAL TRANSITION FIX                                          */
-/* -------------------------------------------------------------------------- */
-/* Back-scroll from map uses reverse-safe visual progress so portal does not
-   jump forward before rewinding. */
