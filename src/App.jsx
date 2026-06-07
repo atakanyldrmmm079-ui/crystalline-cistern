@@ -3615,6 +3615,10 @@ export default function App() {
             designMode={false}
             showStory={!isMobileViewport}
             showLabel={false}
+            showInfoPanel={!isMobileViewport}
+            showAnalyzePanel={!isMobileViewport}
+            showCrystalInfo={!isMobileViewport}
+            showMobilePanels={false}
             showLeva={false}
           />
         </div>
