@@ -2856,6 +2856,30 @@ function CinematicPreloader({ design, onDone }) {
   const progressRef = useRef(progress);
   const onDoneRef = useRef(onDone);
 
+  const isMobileBoot =
+    typeof window !== "undefined" &&
+    (window.innerWidth <= 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || ""));
+
+  // Final publish safety:
+  // Never let the boot screen wait forever for one slow/missing asset.
+  // Desktop gets a little more time; mobile exits faster.
+  const maxBootWaitMs = isMobileBoot ? 5200 : 7200;
+  const softReadyProgress = isMobileBoot ? 72 : 82;
+
+  function finishLoader() {
+    if (doneRef.current) return;
+
+    doneRef.current = true;
+    setVisualProgress(100);
+    setPhase("detected");
+
+    window.setTimeout(() => setPhase("exit"), Math.min(design.loadingDetectedHoldMs ?? 500, 520));
+    window.setTimeout(() => {
+      document.body.style.overflow = "";
+      onDoneRef.current?.();
+    }, Math.min((design.loadingDetectedHoldMs ?? 500) + (design.loadingExitMs ?? 520), 1050));
+  }
+
   useEffect(() => {
     progressRef.current = progress;
   }, [progress]);
@@ -2875,48 +2899,57 @@ function CinematicPreloader({ design, onDone }) {
     window.scrollTo(0, 0);
 
     let raf = 0;
+    let timeout = window.setTimeout(() => {
+      // If loading is stuck because a phone/network cannot resolve an asset,
+      // release the site anyway.
+      finishLoader();
+    }, maxBootWaitMs);
 
     const tick = () => {
       const elapsed = performance.now() - startedRef.current;
-      const minDuration = design.loadingMinDurationMs;
-      const realProgress = progressRef.current;
-      const realReady = realProgress >= 99.5;
-      const fakeRamp = clamp01(elapsed / Math.max(minDuration, 1)) * 72;
-      let target = Math.max(fakeRamp, realProgress * 0.88);
+      const minDuration = Math.min(design.loadingMinDurationMs ?? 1800, isMobileBoot ? 1900 : 2500);
+      const realProgress = progressRef.current || 0;
+      const forceReady = elapsed >= maxBootWaitMs;
+      const realReady = realProgress >= 99.5 || (elapsed > minDuration && realProgress >= softReadyProgress);
 
-      if (!realReady || elapsed < minDuration) {
-        target = Math.min(target, 92);
+      const fakeRamp = clamp01(elapsed / Math.max(minDuration, 1)) * 86;
+      let target = Math.max(fakeRamp, realProgress * 0.92);
+
+      if (!realReady && !forceReady) {
+        target = Math.min(target, 94);
       } else {
         target = 100;
       }
 
       setVisualProgress((current) => {
-        const next = lerpNumber(current, target, 0.075);
+        const next = lerpNumber(current, target, 0.10);
 
-        if (!doneRef.current && next > 99.3 && realReady && elapsed >= minDuration) {
-          doneRef.current = true;
-          setPhase("detected");
-
-          window.setTimeout(() => setPhase("exit"), design.loadingDetectedHoldMs);
-          window.setTimeout(() => {
-            document.body.style.overflow = previousOverflow;
-            onDoneRef.current?.();
-          }, design.loadingDetectedHoldMs + design.loadingExitMs);
+        if (!doneRef.current && (forceReady || (next > 98.8 && realReady && elapsed >= minDuration))) {
+          window.clearTimeout(timeout);
+          finishLoader();
         }
 
         return next;
       });
 
-      raf = requestAnimationFrame(tick);
+      if (!doneRef.current) raf = requestAnimationFrame(tick);
     };
 
     raf = requestAnimationFrame(tick);
 
     return () => {
+      window.clearTimeout(timeout);
       cancelAnimationFrame(raf);
       document.body.style.overflow = previousOverflow;
     };
-  }, [design.loadingEnabled, design.loadingMinDurationMs, design.loadingDetectedHoldMs, design.loadingExitMs]);
+  }, [
+    design.loadingEnabled,
+    design.loadingMinDurationMs,
+    design.loadingDetectedHoldMs,
+    design.loadingExitMs,
+    maxBootWaitMs,
+    isMobileBoot,
+  ]);
 
   if (!design.loadingEnabled) return null;
 
@@ -2931,6 +2964,15 @@ function CinematicPreloader({ design, onDone }) {
         "--loaderLineOpacity": design.loadingLineOpacity,
       }}
     >
+      <button
+        type="button"
+        className="loaderSkipButton"
+        onClick={finishLoader}
+        aria-label="Skip loading"
+      >
+        SKIP
+      </button>
+
       <div className="cinematicLoaderTopline">
         <span>CRYSTALLINE NETWORK</span>
         <span>ISTANBUL / 2556</span>
@@ -3390,9 +3432,9 @@ export default function App() {
 
     "STORY / TEXT + LOADING": folder({
       loadingEnabled: true,
-      loadingMinDurationMs: { value: 3100, min: 600, max: 9000, step: 100 },
-      loadingDetectedHoldMs: { value: 850, min: 120, max: 2600, step: 50 },
-      loadingExitMs: { value: 900, min: 120, max: 2600, step: 50 },
+      loadingMinDurationMs: { value: 1900, min: 600, max: 9000, step: 100 },
+      loadingDetectedHoldMs: { value: 450, min: 120, max: 2600, step: 50 },
+      loadingExitMs: { value: 520, min: 120, max: 2600, step: 50 },
       loadingAccent: "#9ffff3",
       loadingText: "#f4fffc",
       loadingBackground: "#020b0b",
