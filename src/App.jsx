@@ -2567,25 +2567,47 @@ function getBeatPlainText(beat) {
 }
 
 
-function splitStoryTextToChars(text) {
-  const words = String(text || "").split(/(\s+)/);
+function splitStoryPartsToChars(lines) {
   let charKey = 0;
+  const output = [];
 
-  return words.map((word, wordIndex) => {
-    if (/^\s+$/.test(word)) {
-      return <span key={`space-${wordIndex}`} className="storySpace">{word}</span>;
+  lines.forEach((line, lineIndex) => {
+    line.forEach((part, partIndex) => {
+      const text = typeof part === "string" ? part : part.text;
+      const isStrong = typeof part !== "string" && part.strong;
+
+      String(text || "")
+        .split(/(\s+)/)
+        .forEach((word, wordIndex) => {
+          const key = `l${lineIndex}-p${partIndex}-w${wordIndex}`;
+
+          if (/^\s+$/.test(word)) {
+            output.push(
+              <span key={`space-${key}`} className="storySpace">
+                {word}
+              </span>
+            );
+            return;
+          }
+
+          output.push(
+            <span key={`word-${key}`} className={`storyWord ${isStrong ? "isStrongWord" : "isMutedWord"}`}>
+              {word.split("").map((char) => (
+                <span key={`char-${charKey++}`} className={`storyChar ${isStrong ? "isStrong" : "isMuted"}`}>
+                  {char}
+                </span>
+              ))}
+            </span>
+          );
+        });
+    });
+
+    if (lineIndex < lines.length - 1) {
+      output.push(<span key={`line-space-${lineIndex}`} className="storySpace"> </span>);
     }
-
-    return (
-      <span key={`word-${wordIndex}`} className="storyWord">
-        {word.split("").map((char) => (
-          <span key={`char-${charKey++}`} className="storyChar">
-            {char}
-          </span>
-        ))}
-      </span>
-    );
   });
+
+  return output;
 }
 
 function getActiveGsapStoryBeat(scroll, design) {
@@ -2623,7 +2645,7 @@ function CinematicStoryLayer({ scroll, design, current, fullNetwork }) {
       if (!panelRef.current || !active?.beat) return;
 
       const chars = panelRef.current.querySelectorAll(".storyChar");
-      const lines = panelRef.current.querySelectorAll(".cinematicStoryLine, .cinematicStoryKicker");
+      const lines = panelRef.current.querySelectorAll(".cinematicStoryKicker");
 
       gsap.killTweensOf(panelRef.current);
       gsap.killTweensOf(chars);
@@ -2686,7 +2708,7 @@ function CinematicStoryLayer({ scroll, design, current, fullNetwork }) {
         "--storyMaxWidth": `${design.storyMaxWidth || 880}px`,
         "--storyAccent": design.storyAccent || "#9ffff3",
         "--storyColor": design.storyColor || "rgba(226, 242, 238, 0.82)",
-        "--storyTitleSize": `${Number(design.storyTitleSize || 40)}px`,
+        "--storyTitleSize": `${Number(design.storyTitleSize || 36)}px`,
         "--storyKickerSize": `${design.storyKickerSize || 10}px`,
         opacity: finalOpacity,
         transform: `translate3d(${x}px, ${y}px, 0)`,
@@ -2698,24 +2720,85 @@ function CinematicStoryLayer({ scroll, design, current, fullNetwork }) {
         <div className="cinematicStoryKicker">{beat.eyebrow}</div>
 
         <div className="cinematicStoryText cinematicStoryTitle">
-          {splitStoryTextToChars(titleText)}
+          {splitStoryPartsToChars(beat.lines)}
         </div>
-
-        <div className="cinematicStoryLines">
-          {beat.lines.map((line, lineIndex) => (
-            <p className="cinematicStoryLine" key={`${beat.id}-${lineIndex}`}>
-              {line.map((part, partIndex) => {
-                if (typeof part === "string") return <span key={partIndex}>{part}</span>;
-                return <strong key={partIndex}>{part.text}</strong>;
-              })}
-            </p>
-          ))}
-        </div>
-      </aside>
+</aside>
     </div>
   );
 }
 
+
+
+function MapMissionOverlay({ scroll, design, activatedNodes }) {
+  const enabled = design.mapMissionEnabled ?? true;
+  if (!enabled) return null;
+
+  const mapStart = Math.min(
+    design.mapMissionStart ?? 0.80,
+    design.mapVisualStart ?? 0.80
+  );
+  const fullAt = design.mapMissionFull ?? 0.84;
+  const enter = smooth01(range(scroll, mapStart, fullAt));
+  const opacity = scroll >= fullAt ? (design.mapMissionOpacity ?? 0.96) : clamp01(enter * (design.mapMissionOpacity ?? 0.96));
+
+  if (opacity <= 0.015) return null;
+
+  const activatedCount = activatedNodes.length;
+  const total = CISTERNS.length;
+  const complete = activatedCount >= total;
+  const accent = design.storyAccent || "#9ffff3";
+
+  return (
+    <aside
+      className="mapMissionOverlay persistent"
+      style={{
+        position: "absolute",
+        left: `${design.mapMissionX ?? 4.2}vw`,
+        bottom: `${design.mapMissionY ?? 8}vh`,
+        top: "auto",
+        zIndex: 38,
+        width: `${Math.min(design.mapMissionWidth ?? 520, 500)}px`,
+        maxWidth: "calc(100vw - 48px)",
+        pointerEvents: "none",
+        opacity,
+        transform: `translate3d(0, ${(1 - enter) * 14}px, 0)`,
+        color: design.storyColor,
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+        filter: `drop-shadow(0 0 ${Math.max(10, (design.mapMissionGlow ?? 28) * 0.45)}px ${accent}28)`,
+      }}
+    >
+      <div className="mapMissionInner">
+        <div className="mapMissionTop">
+          <span>NETWORK INTERFACE</span>
+          <span>{activatedCount} / {total} ONLINE</span>
+        </div>
+
+        <div className="mapMissionTitle">
+          {complete ? "The underground circuit is complete." : "Five cistern nodes are waiting on the map."}
+        </div>
+
+        <p className="mapMissionBody">
+          Move across Istanbul to read the blue surface scans. Click each cistern node to reconnect the hidden crystalline circuit beneath the city.
+        </p>
+
+        <div className="mapMissionBars">
+          {CISTERNS.map((node) => {
+            const active = activatedNodes.includes(node.id);
+            return (
+              <span
+                key={node.id}
+                style={{
+                  background: active ? node.color : "rgba(180,255,246,0.12)",
+                  boxShadow: active ? `0 0 10px ${node.color}` : "none",
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </aside>
+  );
+}
 
 function CinematicPreloader({ design, onDone }) {
   const { progress } = useProgress();
@@ -3189,8 +3272,8 @@ export default function App() {
       chamberStart: { value: 0.68, min: 0.1, max: 1, step: 0.005 },
       chamberEnd: { value: 0.84, min: 0.1, max: 1, step: 0.005 },
       // Map timing is now earlier and smoother so the portal section does not create dead scroll.
-      mapStart: { value: 0.86, min: 0.1, max: 1, step: 0.005 },
-      mapEnd: { value: 0.955, min: 0.2, max: 1, step: 0.005 },
+      mapStart: { value: 0.795, min: 0.1, max: 1, step: 0.005 },
+      mapEnd: { value: 0.875, min: 0.2, max: 1, step: 0.005 },
     }),
 
     "01_CAMERA": folder({
@@ -3272,9 +3355,9 @@ export default function App() {
       storyY: { value: 34, min: 5, max: 80, step: 0.5 },
       storyMaxWidth: { value: 980, min: 360, max: 1400, step: 10 },
       storyOpacity: { value: 1, min: 0, max: 1, step: 0.01 },
-      storyTitleSize: { value: 40, min: 30, max: 52, step: 1 },
+      storyTitleSize: { value: 36, min: 30, max: 52, step: 1 },
       storyKickerSize: { value: 11, min: 7, max: 18, step: 1 },
-      storyFadeSize: { value: 0.052, min: 0.008, max: 0.12, step: 0.002 },
+      storyFadeSize: { value: 0.055, min: 0.008, max: 0.12, step: 0.002 },
       storyDrift: { value: 20, min: 0, max: 80, step: 1 },
       storyGlow: { value: 0.3, min: 0, max: 1.2, step: 0.01 },
       storyBlur: { value: 0.0, min: 0, max: 8, step: 0.1 },
@@ -3286,33 +3369,33 @@ export default function App() {
 
       storyDescentStart: { value: 0.165, min: 0.02, max: 0.42, step: 0.005 },
       storyDescentEnd: { value: 0.205, min: 0.06, max: 0.55, step: 0.005 },
-      storyReactionStart: { value: 0.235, min: 0.1, max: 0.6, step: 0.005 },
-      storyReactionEnd: { value: 0.39, min: 0.16, max: 0.72, step: 0.005 },
-      storyCoreStart: { value: 0.41, min: 0.22, max: 0.76, step: 0.005 },
-      storyCoreEnd: { value: 0.565, min: 0.28, max: 0.84, step: 0.005 },
-      storyPortalStart: { value: 0.59, min: 0.36, max: 0.9, step: 0.005 },
-      storyPortalEnd: { value: 0.745, min: 0.44, max: 0.95, step: 0.005 },
-      storyMapStart: { value: 0.85, min: 0.5, max: 0.99, step: 0.005 },
-      storyMapEnd: { value: 0.95, min: 0.58, max: 1.0, step: 0.005 },
+      storyReactionStart: { value: 0.225, min: 0.1, max: 0.6, step: 0.005 },
+      storyReactionEnd: { value: 0.325, min: 0.16, max: 0.72, step: 0.005 },
+      storyCoreStart: { value: 0.355, min: 0.22, max: 0.76, step: 0.005 },
+      storyCoreEnd: { value: 0.455, min: 0.28, max: 0.84, step: 0.005 },
+      storyPortalStart: { value: 0.515, min: 0.36, max: 0.9, step: 0.005 },
+      storyPortalEnd: { value: 0.635, min: 0.44, max: 0.95, step: 0.005 },
+      storyMapStart: { value: 0.755, min: 0.5, max: 0.99, step: 0.005 },
+      storyMapEnd: { value: 0.845, min: 0.58, max: 1.0, step: 0.005 },
     }),
 
     "APP_FLOW": folder({
       // Total page height. Lower value = less empty wheel travel and faster cinematic movement.
-      scrollHeightVh: { value: 760, min: 520, max: 1200, step: 10 },
+      scrollHeightVh: { value: 660, min: 520, max: 1200, step: 10 },
       cisternEnterStart: { value: 0.115, min: 0.02, max: 0.5, step: 0.005 },
       cisternEnterEnd: { value: 0.205, min: 0.08, max: 0.65, step: 0.005 },
       // Camera motion starts as soon as the CisternSceneLab is visible.
       // Tighten this range if you still feel dead scroll.
-      labMotionStart: { value: 0.205, min: 0.06, max: 0.75, step: 0.005 },
-      labMotionEnd: { value: 0.59, min: 0.25, max: 0.92, step: 0.005 },
-      portalStart: { value: 0.585, min: 0.3, max: 0.95, step: 0.005 },
-      portalEnd: { value: 0.84, min: 0.4, max: 0.99, step: 0.005 },
+      labMotionStart: { value: 0.185, min: 0.06, max: 0.75, step: 0.005 },
+      labMotionEnd: { value: 0.62, min: 0.25, max: 0.92, step: 0.005 },
+      portalStart: { value: 0.56, min: 0.3, max: 0.95, step: 0.005 },
+      portalEnd: { value: 0.75, min: 0.4, max: 0.99, step: 0.005 },
       // Dedicated crossfade controls. These remove the half-map / half-cistern stuck frame.
-      mapVisualStart: { value: 0.865, min: 0.5, max: 0.98, step: 0.005 },
-      mapVisualEnd: { value: 0.915, min: 0.55, max: 1.0, step: 0.005 },
-      cisternFadeLead: { value: 0.012, min: 0, max: 0.08, step: 0.002 },
-      mapMountLead: { value: 0.018, min: 0, max: 0.08, step: 0.002 },
-      progressSmoothing: { value: 0.38, min: 0, max: 1, step: 0.01 },
+      mapVisualStart: { value: 0.775, min: 0.5, max: 0.98, step: 0.005 },
+      mapVisualEnd: { value: 0.855, min: 0.55, max: 1.0, step: 0.005 },
+      cisternFadeLead: { value: 0.055, min: 0, max: 0.08, step: 0.002 },
+      mapMountLead: { value: 0.065, min: 0, max: 0.08, step: 0.002 },
+      progressSmoothing: { value: 0.42, min: 0, max: 1, step: 0.01 },
     }),
 
     "06_LIGHT_FOG_BLOOM": folder({
@@ -3531,6 +3614,7 @@ export default function App() {
         {showIntroInterface && <IntroMinimalInterface introOpacity={introOpacity} />}
 
         {shouldRenderStory && <CinematicStoryLayer scroll={scroll} design={design} />}
+        {preloaderDone && <MapMissionOverlay scroll={scroll} design={design} activatedNodes={activatedNodes} />}
       </section>
 
       <section className="scroll-space storyScrollSpace" aria-hidden="true" style={{ height: `${design.scrollHeightVh}vh` }}>
