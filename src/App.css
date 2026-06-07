@@ -4733,3 +4733,82 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
     filter: brightness(1.10) contrast(1.025) saturate(1.08) !important;
   }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V109 TEXTURE FIX + VISUAL BOOST                                             */
+/* -------------------------------------------------------------------------- */
+.viewport {
+  background:
+    radial-gradient(circle at 50% 36%, rgba(118, 255, 240, 0.105), transparent 34%),
+    radial-gradient(circle at 50% 82%, rgba(54, 160, 148, 0.085), transparent 48%),
+    #041b1c !important;
+}
+
+@media (min-width: 1367px) and (min-height: 761px) {
+  .cisternSceneHost {
+    filter: brightness(1.18) contrast(1.05) saturate(1.16) !important;
+  }
+}
+
+.site.isCompactLayout:not(.isMobileLayout) .cisternSceneHost {
+  filter: brightness(1.10) contrast(1.035) saturate(1.10) !important;
+}
+
+@media (max-width: 900px) {
+  .site.isMobileLayout .cisternSceneHost {
+    filter: brightness(1.13) contrast(1.03) saturate(1.11) !important;
+  }
+}
+
+.sceneWarmupVeil {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(127,255,238,0.080), transparent 34%),
+    rgba(2, 10, 11, 0.66) !important;
+}
+
+.gsapSafeStory .storyChar.isStrong {
+  text-shadow:
+    0 0 13px rgba(150,255,242,0.54),
+    0 0 30px rgba(150,255,242,0.25),
+    0 3px 14px rgba(0,0,0,0.74) !important;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V110 PROCEDURAL CISTERN COLUMN MATERIAL FIX                                 */
+/* -------------------------------------------------------------------------- */
+/* Columns are code-generated, not GLB. This version prevents procedural
+   column materials from appearing flat white by tinting them to old stone
+   through SceneLab material normalization. */
+
+.cisternSceneHost {
+  filter: brightness(1.12) contrast(1.07) saturate(1.12) !important;
+}
+
+@media (min-width: 1367px) and (min-height: 761px) {
+  .cisternSceneHost {
+    filter: brightness(1.15) contrast(1.075) saturate(1.14) !important;
+  }
+}
+
+.site.isCompactLayout:not(.isMobileLayout) .cisternSceneHost {
+  filter: brightness(1.08) contrast(1.06) saturate(1.10) !important;
+}
+
+@media (max-width: 900px) {
+  .site.isMobileLayout .cisternSceneHost {
+    filter: brightness(1.10) contrast(1.055) saturate(1.10) !important;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V111 PROCEDURAL TEXTURE PRELOAD                                             */
+/* -------------------------------------------------------------------------- */
+/* Procedural columns are code geometry, but their texture maps now preload
+   and white fallback material is replaced with stone tint until maps attach. */
+.sceneWarmupVeil span::after {
+  content: " / procedural stone maps";
+  opacity: 0.55;
+}
