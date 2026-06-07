@@ -2734,14 +2734,18 @@ function MapMissionOverlay({ scroll, design, activatedNodes }) {
   if (!enabled) return null;
 
   const mapStart = Math.min(
-    design.mapMissionStart ?? 0.80,
-    design.mapVisualStart ?? 0.80
+    design.mapMissionStart ?? 0.78,
+    design.mapVisualStart ?? 0.78
   );
-  const fullAt = design.mapMissionFull ?? 0.84;
-  const enter = smooth01(range(scroll, mapStart, fullAt));
-  const opacity = scroll >= fullAt ? (design.mapMissionOpacity ?? 0.96) : clamp01(enter * (design.mapMissionOpacity ?? 0.96));
+  const fullAt = design.mapMissionFull ?? 0.82;
 
-  if (opacity <= 0.015) return null;
+  // Final map interface: fade in once, then stay visible permanently.
+  if (scroll < mapStart - 0.02) return null;
+
+  const enter = smooth01(range(scroll, mapStart, fullAt));
+  const opacity = scroll >= fullAt
+    ? (design.mapMissionOpacity ?? 0.96)
+    : clamp01(enter * (design.mapMissionOpacity ?? 0.96));
 
   const activatedCount = activatedNodes.length;
   const total = CISTERNS.length;
@@ -2750,21 +2754,21 @@ function MapMissionOverlay({ scroll, design, activatedNodes }) {
 
   return (
     <aside
-      className="mapMissionOverlay persistent"
+      className="mapMissionOverlay persistent alwaysVisible"
       style={{
         position: "absolute",
         left: `${design.mapMissionX ?? 4.2}vw`,
         bottom: `${design.mapMissionY ?? 8}vh`,
         top: "auto",
-        zIndex: 38,
+        zIndex: 9005,
         width: `${Math.min(design.mapMissionWidth ?? 520, 500)}px`,
         maxWidth: "calc(100vw - 48px)",
         pointerEvents: "none",
         opacity,
-        transform: `translate3d(0, ${(1 - enter) * 14}px, 0)`,
+        transform: `translate3d(0, ${(1 - enter) * 10}px, 0)`,
         color: design.storyColor,
         fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-        filter: `drop-shadow(0 0 ${Math.max(10, (design.mapMissionGlow ?? 28) * 0.45)}px ${accent}28)`,
+        filter: `drop-shadow(0 0 ${Math.max(10, (design.mapMissionGlow ?? 28) * 0.38)}px ${accent}28)`,
       }}
     >
       <div className="mapMissionInner">
@@ -3272,8 +3276,8 @@ export default function App() {
       chamberStart: { value: 0.68, min: 0.1, max: 1, step: 0.005 },
       chamberEnd: { value: 0.84, min: 0.1, max: 1, step: 0.005 },
       // Map timing is now earlier and smoother so the portal section does not create dead scroll.
-      mapStart: { value: 0.795, min: 0.1, max: 1, step: 0.005 },
-      mapEnd: { value: 0.875, min: 0.2, max: 1, step: 0.005 },
+      mapStart: { value: 0.755, min: 0.1, max: 1, step: 0.005 },
+      mapEnd: { value: 0.835, min: 0.2, max: 1, step: 0.005 },
     }),
 
     "01_CAMERA": folder({
@@ -3357,7 +3361,7 @@ export default function App() {
       storyOpacity: { value: 1, min: 0, max: 1, step: 0.01 },
       storyTitleSize: { value: 36, min: 30, max: 52, step: 1 },
       storyKickerSize: { value: 11, min: 7, max: 18, step: 1 },
-      storyFadeSize: { value: 0.055, min: 0.008, max: 0.12, step: 0.002 },
+      storyFadeSize: { value: 0.052, min: 0.008, max: 0.12, step: 0.002 },
       storyDrift: { value: 20, min: 0, max: 80, step: 1 },
       storyGlow: { value: 0.3, min: 0, max: 1.2, step: 0.01 },
       storyBlur: { value: 0.0, min: 0, max: 8, step: 0.1 },
@@ -3369,33 +3373,33 @@ export default function App() {
 
       storyDescentStart: { value: 0.165, min: 0.02, max: 0.42, step: 0.005 },
       storyDescentEnd: { value: 0.205, min: 0.06, max: 0.55, step: 0.005 },
-      storyReactionStart: { value: 0.225, min: 0.1, max: 0.6, step: 0.005 },
-      storyReactionEnd: { value: 0.325, min: 0.16, max: 0.72, step: 0.005 },
-      storyCoreStart: { value: 0.355, min: 0.22, max: 0.76, step: 0.005 },
-      storyCoreEnd: { value: 0.455, min: 0.28, max: 0.84, step: 0.005 },
-      storyPortalStart: { value: 0.515, min: 0.36, max: 0.9, step: 0.005 },
-      storyPortalEnd: { value: 0.635, min: 0.44, max: 0.95, step: 0.005 },
-      storyMapStart: { value: 0.755, min: 0.5, max: 0.99, step: 0.005 },
-      storyMapEnd: { value: 0.845, min: 0.58, max: 1.0, step: 0.005 },
+      storyReactionStart: { value: 0.215, min: 0.1, max: 0.6, step: 0.005 },
+      storyReactionEnd: { value: 0.315, min: 0.16, max: 0.72, step: 0.005 },
+      storyCoreStart: { value: 0.335, min: 0.22, max: 0.76, step: 0.005 },
+      storyCoreEnd: { value: 0.425, min: 0.28, max: 0.84, step: 0.005 },
+      storyPortalStart: { value: 0.485, min: 0.36, max: 0.9, step: 0.005 },
+      storyPortalEnd: { value: 0.59, min: 0.44, max: 0.95, step: 0.005 },
+      storyMapStart: { value: 0.72, min: 0.5, max: 0.99, step: 0.005 },
+      storyMapEnd: { value: 0.805, min: 0.58, max: 1.0, step: 0.005 },
     }),
 
     "APP_FLOW": folder({
       // Total page height. Lower value = less empty wheel travel and faster cinematic movement.
-      scrollHeightVh: { value: 660, min: 520, max: 1200, step: 10 },
+      scrollHeightVh: { value: 600, min: 520, max: 1200, step: 10 },
       cisternEnterStart: { value: 0.115, min: 0.02, max: 0.5, step: 0.005 },
       cisternEnterEnd: { value: 0.205, min: 0.08, max: 0.65, step: 0.005 },
       // Camera motion starts as soon as the CisternSceneLab is visible.
       // Tighten this range if you still feel dead scroll.
-      labMotionStart: { value: 0.185, min: 0.06, max: 0.75, step: 0.005 },
-      labMotionEnd: { value: 0.62, min: 0.25, max: 0.92, step: 0.005 },
-      portalStart: { value: 0.56, min: 0.3, max: 0.95, step: 0.005 },
-      portalEnd: { value: 0.75, min: 0.4, max: 0.99, step: 0.005 },
+      labMotionStart: { value: 0.175, min: 0.06, max: 0.75, step: 0.005 },
+      labMotionEnd: { value: 0.56, min: 0.25, max: 0.92, step: 0.005 },
+      portalStart: { value: 0.525, min: 0.3, max: 0.95, step: 0.005 },
+      portalEnd: { value: 0.705, min: 0.4, max: 0.99, step: 0.005 },
       // Dedicated crossfade controls. These remove the half-map / half-cistern stuck frame.
-      mapVisualStart: { value: 0.775, min: 0.5, max: 0.98, step: 0.005 },
-      mapVisualEnd: { value: 0.855, min: 0.55, max: 1.0, step: 0.005 },
-      cisternFadeLead: { value: 0.055, min: 0, max: 0.08, step: 0.002 },
-      mapMountLead: { value: 0.065, min: 0, max: 0.08, step: 0.002 },
-      progressSmoothing: { value: 0.42, min: 0, max: 1, step: 0.01 },
+      mapVisualStart: { value: 0.735, min: 0.5, max: 0.98, step: 0.005 },
+      mapVisualEnd: { value: 0.815, min: 0.55, max: 1.0, step: 0.005 },
+      cisternFadeLead: { value: 0.05, min: 0, max: 0.08, step: 0.002 },
+      mapMountLead: { value: 0.0, min: 0, max: 0.08, step: 0.002 },
+      progressSmoothing: { value: 0.38, min: 0, max: 1, step: 0.01 },
     }),
 
     "06_LIGHT_FOG_BLOOM": folder({
@@ -3489,7 +3493,7 @@ export default function App() {
   // No fullscreen cyan wash: the portal must stay as a real object, not a blue screen overlay.
   const portalWashProgress = 0;
   const portalWashOpacity = 0;
-  const shouldMountMap = scroll >= mapVisualStart - (design.mapMountLead ?? 0.018);
+  const shouldMountMap = scroll >= mapVisualStart + 0.012;
   const showIntroInterface = introOpacity > 0.04 && scroll < design.introFadeEnd + 0.03 && cisternOpacity < 0.18 && mapProgress < 0.02;
   const shouldRenderStory = preloaderDone && scroll >= design.storyReactionStart - 0.035 && introOpacity < 0.14;
 
