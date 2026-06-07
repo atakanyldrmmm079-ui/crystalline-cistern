@@ -1870,11 +1870,6 @@ function CrystalBackFog({ portalProgress = 0, activeMode = CRYSTAL_MODES[0] }) {
 
 function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 }) {
   const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")));
-  // Desktop/web keeps the crystal analyze/info panel.
-  // Mobile disables only the internal SceneLab info/analyze panel to prevent overlap.
-  const crystalInfoEnabled =
-    !mobile && showStory && showInfoPanel && showAnalyzePanel && showCrystalInfo && showMobilePanels;
-
 const points = useRef();
   const interactionMeshRef = useRef();
   const hoverStrengthRef = useRef(0);
@@ -3681,7 +3676,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
 
   // Panel now opens from the crystal click itself.
   // This avoids depending on App.jsx showStory flags while keeping Leva control.
-  const storyVisible = crystalInfoEnabled && storyControls.showStoryControl && storyPanelOpen && mapProgress < 0.52;
+  const storyVisible = (!mobile && showStory && showInfoPanel && showAnalyzePanel && showCrystalInfo && showMobilePanels) && storyControls.showStoryControl && storyPanelOpen && mapProgress < 0.52;
   const labOpacity = THREE.MathUtils.clamp(visibleProgress, 0, 1);
   const rootRef = useRef(null);
 
@@ -3696,7 +3691,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
         overflow: "hidden",
         background: "#020b0a",
         opacity: labOpacity,
-        pointerEvents: crystalInfoEnabled && mapProgress < 0.52 ? "auto" : "none",
+        pointerEvents: (!mobile && showStory && showInfoPanel && showAnalyzePanel && showCrystalInfo && showMobilePanels) && mapProgress < 0.52 ? "auto" : "none",
         isolation: "isolate",
         touchAction: "pan-y",
         zIndex: 1,
@@ -3782,7 +3777,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
 
       {storyVisible && <StoryOverlay activeMode={activeMode} modePulseKey={modePulseKey} onAnalyze={handleCrystalModeChange} />}
 
-      {crystalInfoEnabled && scrollProgress > 0.035 && scrollProgress < 0.70 && mapProgress < 0.22 && (
+      {(!mobile && showStory && showInfoPanel && showAnalyzePanel && showCrystalInfo && showMobilePanels) && scrollProgress > 0.035 && scrollProgress < 0.70 && mapProgress < 0.22 && (
         <div
           className="crystalAnalyzePrompt"
           style={{
@@ -3816,7 +3811,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
         </div>
       )}
 
-      {crystalInfoEnabled && showLabel && (
+      { showLabel && (
       <div
         className="cisternLabLabel"
         style={{
