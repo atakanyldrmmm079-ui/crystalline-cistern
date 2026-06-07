@@ -5307,3 +5307,54 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
     filter: none !important;
   }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V125 REAL MAP AREA HOVER RESTORE                                            */
+/* -------------------------------------------------------------------------- */
+/* Restores the actual MapLibreCrystalMap.jsx/.css from v74, the last package
+   that still carried the real map hover/layer code. */
+
+@media (min-width: 901px) {
+  .mapRevealLayer,
+  .mapRevealLayer.visible,
+  .mapRevealLayer .mapLibreCrystalStage,
+  .mapRevealLayer .maplibregl-map,
+  .mapRevealLayer .maplibregl-canvas-container,
+  .mapRevealLayer .maplibregl-canvas,
+  .mapLibreCrystalStage,
+  .mapLibreCrystalStage .maplibregl-map,
+  .mapLibreCrystalStage .maplibregl-canvas-container,
+  .mapLibreCrystalStage .maplibregl-canvas {
+    pointer-events: auto !important;
+    touch-action: auto !important;
+  }
+
+  .mapRevealLayer .maplibregl-canvas,
+  .mapLibreCrystalStage .maplibregl-canvas {
+    cursor: crosshair !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .mapRevealLayer,
+  .mapRevealLayer .maplibregl-canvas,
+  .mapLibreCrystalStage .maplibregl-canvas {
+    touch-action: pan-y !important;
+  }
+}
+
+/* Marker hover and map canvas hover must both be available. */
+.mapRevealLayer .maplibregl-marker,
+.mapLibreCrystalStage .maplibregl-marker,
+.mapRevealLayer .mlLogoMarker,
+.mapLibreCrystalStage .mlLogoMarker {
+  pointer-events: auto !important;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V126 REVERSE PORTAL TRANSITION FIX                                          */
+/* -------------------------------------------------------------------------- */
+/* Back-scroll from map uses reverse-safe visual progress so portal does not
+   jump forward before rewinding. */
