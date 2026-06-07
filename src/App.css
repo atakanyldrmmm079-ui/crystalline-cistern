@@ -4286,3 +4286,55 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
     filter: saturate(1.02) contrast(1.01) !important;
   }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V99 BOOT LOADER TIMEOUT FIX                                                 */
+/* -------------------------------------------------------------------------- */
+.loaderSkipButton {
+  position: fixed;
+  right: 18px;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  z-index: 1000000;
+  border: 1px solid rgba(159, 255, 243, 0.25);
+  border-radius: 999px;
+  padding: 8px 11px;
+  background: rgba(2, 8, 9, 0.46);
+  color: rgba(230, 255, 250, 0.74);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.loaderSkipButton:active {
+  transform: scale(0.96);
+}
+
+@media (max-width: 768px) {
+  .loaderSkipButton {
+    right: 12px;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    padding: 7px 9px;
+    font-size: 7px;
+    letter-spacing: 0.14em;
+  }
+
+  .cinematicLoaderCenter {
+    transform: scale(0.86);
+  }
+
+  .cinematicLoaderTopline {
+    left: 14px !important;
+    right: 14px !important;
+    font-size: 8px !important;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V100 RUNTIME BLACK SCREEN FIX                                               */
+/* -------------------------------------------------------------------------- */
+/* Fixes ReferenceError from stale allowCrystalInfoPanels variable. */
