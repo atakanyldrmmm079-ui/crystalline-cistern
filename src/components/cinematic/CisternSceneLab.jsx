@@ -1877,7 +1877,7 @@ const points = useRef();
   const pointerTargetRef = useRef(new THREE.Vector2(0, 0));
   const pointerUniformRef = useRef(new THREE.Vector2(0, 0));
 
-  const defaultCount = mobile ? 140 : 300;
+  const defaultCount = mobile ? 150 : 320;
 
   const {
     particleEnabled,
@@ -1909,7 +1909,7 @@ const points = useRef();
   } = useControls("Scattering Particles", {
     particleEnabled: true,
     particleCount: { value: defaultCount, min: 60, max: 900, step: 20 },
-    particleOpacity: { value: mobile ? 0.35 : 0.48, min: 0, max: 1, step: 0.01 },
+    particleOpacity: { value: mobile ? 0.38 : 0.54, min: 0, max: 1, step: 0.01 },
     particleSize: { value: 0.058, min: 0.01, max: 0.22, step: 0.001 },
     particleSpeed: { value: 0.28, min: 0, max: 1.4, step: 0.01 },
     particleHeight: { value: 2.95, min: 0.6, max: 7.5, step: 0.05 },
@@ -3620,6 +3620,247 @@ function SceneContent({
   );
 }
 
+
+function tuneLoadedSceneMaterials(root, gl) {
+  if (!root) return;
+
+  const maxAnisotropy = gl?.capabilities?.getMaxAnisotropy?.() || 4;
+
+  root.traverse((object) => {
+    if (!object?.isMesh || !object.material) return;
+
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+
+    materials.forEach((material) => {
+      if (!material) return;
+
+      ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap"].forEach((key) => {
+        const texture = material[key];
+        if (!texture) return;
+
+        texture.generateMipmaps = true;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.anisotropy = Math.min(maxAnisotropy, 6);
+
+        if (key === "map" || key === "emissiveMap") {
+          texture.colorSpace = THREE.SRGBColorSpace;
+        }
+
+        texture.needsUpdate = true;
+      });
+
+      // Prevent imported models from staying on a pure-white fallback material.
+      if (
+        material.color &&
+        !material.map &&
+        material.color.r > 0.92 &&
+        material.color.g > 0.92 &&
+        material.color.b > 0.92
+      ) {
+        material.color.set("#bff8ef");
+      }
+
+      material.needsUpdate = true;
+    });
+  });
+}
+
+function SceneMaterialWarmup() {
+  const { gl, scene } = useThree();
+  const doneRef = useRef(false);
+
+  useEffect(() => {
+    if (doneRef.current || !scene) return;
+    doneRef.current = true;
+
+    requestAnimationFrame(() => {
+      tuneLoadedSceneMaterials(scene, gl);
+    });
+  }, [gl, scene]);
+
+  return null;
+}
+
+
+function makeProceduralStoneMaterial({
+  seed = 0,
+  opacity = 1,
+  accent = false,
+} = {}) {
+  const shade = 0.82 + ((seed * 17) % 9) * 0.012;
+  const base = accent ? new THREE.Color("#8feee0") : new THREE.Color("#8aa9a3");
+  const color = base.multiplyScalar(shade);
+
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.92,
+    metalness: 0.02,
+    envMapIntensity: 0.18,
+    transparent: opacity < 1,
+    opacity,
+    toneMapped: true,
+  });
+}
+
+function normalizeProceduralColumnMaterial(material, index = 0) {
+  if (!material) return material;
+
+  // If the generated material is pure white / flat, tint it toward old cistern stone.
+  if (material.color && material.color.r > 0.88 && material.color.g > 0.88 && material.color.b > 0.88) {
+    const shade = 0.78 + (index % 7) * 0.025;
+    material.color.set("#8ba9a3").multiplyScalar(shade);
+  }
+
+  material.roughness = Math.max(material.roughness ?? 0.8, 0.88);
+  material.metalness = Math.min(material.metalness ?? 0.05, 0.05);
+  material.envMapIntensity = Math.min(material.envMapIntensity ?? 0.18, 0.22);
+  material.toneMapped = true;
+  material.needsUpdate = true;
+
+  return material;
+}
+
+
+function ProceduralColumnMaterialPass() {
+  const { scene } = useThree();
+  const doneRef = useRef(false);
+
+  useEffect(() => {
+    if (doneRef.current || !scene) return;
+    doneRef.current = true;
+
+    requestAnimationFrame(() => {
+      let columnIndex = 0;
+
+      scene.traverse((object) => {
+        if (!object?.isMesh || !object.material) return;
+
+        const name = `${object.name || ""} ${object.userData?.type || ""}`.toLowerCase();
+        const looksLikeColumn =
+          name.includes("column") ||
+          name.includes("pillar") ||
+          name.includes("cistern") ||
+          name.includes("capital") ||
+          name.includes("base");
+
+        // Also catch simple procedural cylinder columns that often have no name.
+        const geometryType = object.geometry?.type || "";
+        const isCylinderColumn =
+          geometryType.includes("Cylinder") &&
+          object.scale?.y > 0.8 &&
+          object.scale?.x < 2.5 &&
+          object.scale?.z < 2.5;
+
+        if (!looksLikeColumn && !isCylinderColumn) return;
+
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        materials.forEach((mat) => normalizeProceduralColumnMaterial(mat, columnIndex));
+        columnIndex += 1;
+      });
+    });
+  }, [scene]);
+
+  return null;
+}
+
+
+const PROCEDURAL_TEXTURE_ASSETS = [
+  "/textures/cables/cable_diffuse.jpg",
+  "/textures/cables/cable_normal.jpg",
+  "/textures/columns/column_diffuse.jpg",
+  "/textures/columns/column_normal.jpg",
+  "/textures/pedestal/pedestal_diffuse.jpg",
+  "/textures/pedestal/pedestal_normal.jpg",
+  "/textures/rocks/rock_diffuse.jpg",
+  "/textures/rocks/rock_normal.jpg",
+];
+
+try {
+  PROCEDURAL_TEXTURE_ASSETS.forEach((src) => useTexture.preload?.(src));
+} catch {
+  // procedural texture preload is best-effort only
+}
+
+
+function applyProceduralTextureSettings(texture) {
+  if (!texture) return texture;
+
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.needsUpdate = true;
+
+  return texture;
+}
+
+function normalizeProceduralTexturedColumn(object, index = 0) {
+  if (!object?.material) return;
+
+  const materials = Array.isArray(object.material) ? object.material : [object.material];
+
+  materials.forEach((material) => {
+    if (!material) return;
+
+    if (material.map) {
+      applyProceduralTextureSettings(material.map);
+      // When map exists, don't leave material over-white; let texture show.
+      if (material.color) material.color.set("#d6eee8");
+    } else if (material.color) {
+      // Texture is not ready yet: use stone-tinted fallback, never pure white.
+      const shade = 0.74 + (index % 6) * 0.035;
+      material.color.set("#8fa9a4").multiplyScalar(shade);
+    }
+
+    material.roughness = Math.max(material.roughness ?? 0.86, 0.86);
+    material.metalness = Math.min(material.metalness ?? 0.04, 0.04);
+    material.envMapIntensity = Math.min(material.envMapIntensity ?? 0.18, 0.22);
+    material.toneMapped = true;
+    material.needsUpdate = true;
+  });
+}
+
+function ProceduralTextureReadyPass() {
+  const { scene } = useThree();
+  const frameRef = useRef(0);
+
+  useFrame(() => {
+    // Run only first few frames because procedural textures may attach after mount.
+    if (frameRef.current > 36 || !scene) return;
+    frameRef.current += 1;
+
+    let index = 0;
+    scene.traverse((object) => {
+      if (!object?.isMesh || !object.material) return;
+
+      const name = `${object.name || ""} ${object.userData?.type || ""}`.toLowerCase();
+      const geometryType = object.geometry?.type || "";
+      const looksLikeColumn =
+        name.includes("column") ||
+        name.includes("pillar") ||
+        name.includes("cistern") ||
+        name.includes("capital") ||
+        name.includes("base");
+
+      const isCylinderColumn =
+        geometryType.includes("Cylinder") &&
+        object.scale?.y > 0.8 &&
+        object.scale?.x < 2.5 &&
+        object.scale?.z < 2.5;
+
+      if (!looksLikeColumn && !isCylinderColumn) return;
+
+      normalizeProceduralTexturedColumn(object, index);
+      index += 1;
+    });
+  });
+
+  return null;
+}
+
 export default 
 function CisternSceneLab({
 scrollProgress = 0,
@@ -3640,12 +3881,12 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
   const { autoCamera, exposure, bloom, vignette, fogNear, fogFar, dprMax } =
     useControls("Scene", {
       autoCamera: true,
-      exposure: { value: 1.46, min: 0.1, max: 2.4, step: 0.01 },
-      bloom: { value: mobile ? 0.16 : 0.30, min: 0, max: 2, step: 0.01 },
+      exposure: { value: 1.48, min: 0.1, max: 2.4, step: 0.01 },
+      bloom: { value: mobile ? 0.18 : 0.34, min: 0, max: 2, step: 0.01 },
       vignette: { value: 0.48, min: 0, max: 1, step: 0.01 },
       fogNear: { value: 8.4, min: 0, max: 25, step: 0.1 },
       fogFar: { value: 38, min: 5, max: 90, step: 0.5 },
-      dprMax: { value: mobile ? 0.96 : 1.12, min: 0.72, max: 1.28, step: 0.05 },
+      dprMax: { value: mobile ? 1.0 : 1.16, min: 0.72, max: 1.32, step: 0.05 },
     });
 
   const storyControls = useControls("Story", {
@@ -3659,7 +3900,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
     sparkles: { value: true },
     sparkleCount: { value: mobile ? 0 : 0, min: 0, max: 16, step: 1 },
     frameloopAlways: { value: true },
-    lowPowerDpr: { value: mobile ? 0.88 : 1.04, min: 0.72, max: 1.18, step: 0.05 },
+    lowPowerDpr: { value: mobile ? 0.90 : 1.06, min: 0.72, max: 1.2, step: 0.05 },
   });
 
   const [activeModeIndex, setActiveModeIndex] = useState(0);
@@ -3701,7 +3942,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
 
       <Canvas
         shadows={perf.contactShadows}
-        dpr={[0.82, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.88 : 1.04)]}
+        dpr={[0.84, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.90 : 1.06)]}
         eventSource={rootRef}
         eventPrefix="client"
         onCreated={(state) => {
@@ -3737,6 +3978,9 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
           <SceneWarmup enabled={visibleProgress > 0.02} />
 
           <ambientLight intensity={0.82} />
+        <SceneMaterialWarmup />
+        <ProceduralColumnMaterialPass />
+        <ProceduralTextureReadyPass />
         <SceneContent
             fogNear={fogNear}
             fogFar={fogFar}
