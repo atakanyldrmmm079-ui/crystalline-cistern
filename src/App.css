@@ -5233,3 +5233,77 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
     pointer-events: none !important;
   }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V123 RESTORE MAP AREA / BUILDING HOVER                                      */
+/* -------------------------------------------------------------------------- */
+/* Restores the blue hover glow on the map geometry/building areas, not just
+   marker hover. Desktop MapLibre canvas must receive mousemove normally. */
+
+@media (min-width: 901px) {
+  .mapRevealLayer,
+  .mapRevealLayer.visible,
+  .mapRevealLayer .mapLibreCrystalStage,
+  .mapRevealLayer .maplibregl-map,
+  .mapRevealLayer .maplibregl-canvas-container,
+  .mapRevealLayer .maplibregl-canvas,
+  .mapLibreCrystalStage,
+  .mapLibreCrystalStage .maplibregl-map,
+  .mapLibreCrystalStage .maplibregl-canvas-container,
+  .mapLibreCrystalStage .maplibregl-canvas {
+    pointer-events: auto !important;
+    touch-action: auto !important;
+    cursor: grab;
+  }
+
+  .mapRevealLayer .maplibregl-canvas:hover,
+  .mapLibreCrystalStage .maplibregl-canvas:hover {
+    cursor: crosshair;
+  }
+}
+
+/* Marker hover still works, but marker rules must not block canvas mousemove. */
+.mapRevealLayer .maplibregl-marker,
+.mapLibreCrystalStage .maplibregl-marker,
+.mapRevealLayer .mlLogoMarker,
+.mapLibreCrystalStage .mlLogoMarker {
+  pointer-events: auto !important;
+}
+
+/* On mobile keep vertical scroll behavior. */
+@media (max-width: 900px) {
+  .mapRevealLayer,
+  .mapRevealLayer .maplibregl-canvas,
+  .mapLibreCrystalStage .maplibregl-canvas {
+    touch-action: pan-y !important;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V124 MOBILE SHARPNESS ONLY                                                  */
+/* -------------------------------------------------------------------------- */
+/* Only mobile clarity is improved. Desktop/laptop visual tone remains v123. */
+@media (max-width: 900px) {
+  .site.isMobileLayout .cisternSceneHost canvas,
+  .site.isMobileLayout .introSceneLayer canvas,
+  .site.isMobileLayout .mapRevealLayer canvas,
+  .site.isMobileLayout .maplibregl-canvas {
+    image-rendering: auto !important;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  .site.isMobileLayout .cisternSceneHost {
+    /* very subtle edge clarity without changing lighting/fog */
+    filter: contrast(1.015) saturate(1.015) !important;
+  }
+}
+
+@media (min-width: 901px) {
+  /* Explicitly keep desktop/laptop from v123 unchanged. */
+  .cisternSceneHost {
+    filter: none !important;
+  }
+}
