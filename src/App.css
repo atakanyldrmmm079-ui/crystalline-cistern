@@ -2378,3 +2378,200 @@ button:hover {
     width: 28px;
   }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V75 RESTORE PANELS + GSAP ACTS ONLY                                         */
+/* -------------------------------------------------------------------------- */
+
+.introOpeningTitle {
+  position: absolute;
+  left: 54px;
+  bottom: 92px;
+  max-width: 660px;
+  pointer-events: none;
+  color: rgba(244, 255, 252, 0.94);
+  font-family: "Inter", "Space Grotesk", Arial, sans-serif;
+  text-shadow: 0 22px 70px rgba(0,0,0,0.45);
+}
+
+.introOpeningTitle span {
+  display: block;
+  margin-bottom: 14px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  color: rgba(160, 255, 244, 0.72);
+}
+
+.introOpeningTitle b {
+  display: block;
+  max-width: 620px;
+  font-size: clamp(48px, 5.3vw, 86px);
+  line-height: 0.84;
+  letter-spacing: -0.082em;
+  font-weight: 300;
+}
+
+.introOpeningTitle small {
+  display: block;
+  max-width: 520px;
+  margin-top: 22px;
+  font-size: 13px;
+  line-height: 1.72;
+  color: rgba(232, 248, 245, 0.62);
+}
+
+/* Keep all old panels/UI alive; only the ACT typography renderer is replaced by GSAP. */
+.gsapActLayer {
+  z-index: 9480 !important;
+  width: min(var(--storyMaxWidth), calc(100vw - 84px)) !important;
+  transition:
+    opacity 520ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 720ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.gsapActCard {
+  padding: 20px 24px 22px !important;
+  border-left: 1px solid rgba(150, 255, 240, 0.22) !important;
+  border-radius: 0 20px 20px 0 !important;
+  background:
+    linear-gradient(90deg, rgba(2, 7, 8, 0.42), rgba(2, 7, 8, 0.18) 72%, rgba(2, 7, 8, 0.025)),
+    radial-gradient(circle at 0% 0%, rgba(116, 255, 244, 0.055), transparent 56%) !important;
+  backdrop-filter: blur(7px) !important;
+  -webkit-backdrop-filter: blur(7px) !important;
+  box-shadow:
+    0 20px 70px rgba(0,0,0,0.22),
+    inset 0 0 0 1px rgba(255,255,255,0.016) !important;
+  animation: none !important;
+}
+
+.cinematicStoryLayer.right .gsapActCard {
+  border-left: none !important;
+  border-right: 1px solid rgba(150, 255, 240, 0.22) !important;
+  border-radius: 20px 0 0 20px !important;
+  background:
+    linear-gradient(270deg, rgba(2, 7, 8, 0.42), rgba(2, 7, 8, 0.18) 72%, rgba(2, 7, 8, 0.025)),
+    radial-gradient(circle at 100% 0%, rgba(116, 255, 244, 0.055), transparent 56%) !important;
+}
+
+.gsapActLayer .cinematicStoryKicker {
+  margin-bottom: 16px !important;
+  font-size: var(--storyKickerSize) !important;
+  opacity: 0.82 !important;
+  text-shadow: none !important;
+}
+
+.gsapActLayer .cinematicStoryText {
+  font-size: clamp(40px, 5.45vw, var(--storyTitleSize)) !important;
+  line-height: 1.03 !important;
+  letter-spacing: -0.078em !important;
+  font-weight: 300 !important;
+}
+
+.gsapActLayer .cinematicStoryLine {
+  overflow: hidden !important;
+  min-height: 1.03em !important;
+}
+
+.gsapActLayer .cinematicStoryLineText span,
+.gsapActLayer .cinematicStoryLineText span:not(.is-strong),
+.gsapActLayer .cinematicStoryLineText .is-muted {
+  color: var(--storyMuted) !important;
+  opacity: 1 !important;
+}
+
+.gsapActLayer .cinematicStoryLineText .is-strong {
+  color: var(--storyColor) !important;
+  font-weight: 410 !important;
+  text-shadow:
+    0 0 12px color-mix(in srgb, var(--storyAccent), transparent 46%),
+    0 0 34px color-mix(in srgb, var(--storyAccent), transparent 72%) !important;
+}
+
+.gsapActLayer .cinematicStoryText::before,
+.gsapActLayer .cinematicStoryText::after,
+.gsapActLayer .cinematicStoryKicker::before,
+.gsapActLayer .cinematicStoryKicker::after {
+  opacity: calc(var(--storyGlitch) * 0.10) !important;
+}
+
+/* Map/detail panels from the reference CSS must not be hidden by the ACT fix. */
+.storyOverlay,
+.storyRoles,
+.storyNextHint,
+.storyProgress,
+.readout,
+.mapRevealLayer,
+.mapMissionOverlay,
+.cinematicGuideLayer,
+.networkStatus,
+.finalMessage {
+  visibility: visible;
+}
+
+/* Mobile keeps the same ACT logic but prevents huge text overlap. */
+@media (max-width: 768px) {
+  .introOpeningTitle {
+    left: 22px;
+    right: 22px;
+    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+    max-width: none;
+  }
+
+  .introOpeningTitle b {
+    font-size: clamp(34px, 10vw, 52px);
+    line-height: 0.9;
+  }
+
+  .introOpeningTitle small {
+    max-width: 92vw;
+    font-size: 11px;
+    line-height: 1.55;
+  }
+
+  .gsapActLayer,
+  .gsapActLayer.right {
+    left: 18px !important;
+    right: 18px !important;
+    top: auto !important;
+    bottom: calc(106px + env(safe-area-inset-bottom, 0px)) !important;
+    width: auto !important;
+    text-align: left !important;
+  }
+
+  .gsapActCard,
+  .cinematicStoryLayer.right .gsapActCard {
+    padding: 15px 16px 16px !important;
+    border-left: 1px solid rgba(150,255,240,0.18) !important;
+    border-right: none !important;
+    border-radius: 0 16px 16px 0 !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+
+  .gsapActLayer .cinematicStoryText {
+    font-size: clamp(27px, 8.1vw, 39px) !important;
+    line-height: 1.06 !important;
+    letter-spacing: -0.06em !important;
+  }
+
+  .gsapActLayer .cinematicStoryKicker {
+    font-size: 8px !important;
+    letter-spacing: 0.22em !important;
+    margin-bottom: 10px !important;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V76 PUBLISH MODE: DESIGN MODE REMOVED                                       */
+/* -------------------------------------------------------------------------- */
+.designToggle,
+[class*="leva"],
+#leva__root {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
