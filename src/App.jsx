@@ -561,10 +561,8 @@ function CameraRig({ scroll, selected, design }) {
     const chamberProgress = smooth01(range(scroll, design.chamberStart, design.chamberEnd));
     const mapProgress = smooth01(range(scroll, design.mapStart, design.mapEnd));
 
-    
-  // Reverse portal safety:
-  // When scrolling upward out of the map, slightly bias the visual progress backward
-  // so the portal reads as an exit instead of re-entering.
+  // V129: always define this in App scope to avoid ReferenceError.
+  // It only biases the SceneLab portal progress while scrolling upward from the map.
   const reversePortalScroll =
     scrollDirection === "up" && mapProgress > 0.08
       ? Math.max(0, scroll - 0.024)
