@@ -1877,7 +1877,7 @@ const points = useRef();
   const pointerTargetRef = useRef(new THREE.Vector2(0, 0));
   const pointerUniformRef = useRef(new THREE.Vector2(0, 0));
 
-  const defaultCount = mobile ? 130 : 230;
+  const defaultCount = mobile ? 140 : 300;
 
   const {
     particleEnabled,
@@ -1908,8 +1908,8 @@ const points = useRef();
     particleBurstDecay,
   } = useControls("Scattering Particles", {
     particleEnabled: true,
-    particleCount: { value: defaultCount, min: 60, max: 760, step: 20 },
-    particleOpacity: { value: mobile ? 0.34 : 0.42, min: 0, max: 1, step: 0.01 },
+    particleCount: { value: defaultCount, min: 60, max: 900, step: 20 },
+    particleOpacity: { value: mobile ? 0.35 : 0.48, min: 0, max: 1, step: 0.01 },
     particleSize: { value: 0.058, min: 0.01, max: 0.22, step: 0.001 },
     particleSpeed: { value: 0.28, min: 0, max: 1.4, step: 0.01 },
     particleHeight: { value: 2.95, min: 0.6, max: 7.5, step: 0.05 },
@@ -3640,12 +3640,12 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
   const { autoCamera, exposure, bloom, vignette, fogNear, fogFar, dprMax } =
     useControls("Scene", {
       autoCamera: true,
-      exposure: { value: 1.34, min: 0.1, max: 2.4, step: 0.01 },
-      bloom: { value: mobile ? 0.16 : 0.24, min: 0, max: 2, step: 0.01 },
+      exposure: { value: 1.46, min: 0.1, max: 2.4, step: 0.01 },
+      bloom: { value: mobile ? 0.16 : 0.30, min: 0, max: 2, step: 0.01 },
       vignette: { value: 0.48, min: 0, max: 1, step: 0.01 },
       fogNear: { value: 8.4, min: 0, max: 25, step: 0.1 },
       fogFar: { value: 38, min: 5, max: 90, step: 0.5 },
-      dprMax: { value: mobile ? 0.96 : 1.06, min: 0.72, max: 1.25, step: 0.05 },
+      dprMax: { value: mobile ? 0.96 : 1.12, min: 0.72, max: 1.28, step: 0.05 },
     });
 
   const storyControls = useControls("Story", {
@@ -3659,7 +3659,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
     sparkles: { value: true },
     sparkleCount: { value: mobile ? 0 : 0, min: 0, max: 16, step: 1 },
     frameloopAlways: { value: true },
-    lowPowerDpr: { value: mobile ? 0.88 : 0.98, min: 0.72, max: 1.15, step: 0.05 },
+    lowPowerDpr: { value: mobile ? 0.88 : 1.04, min: 0.72, max: 1.18, step: 0.05 },
   });
 
   const [activeModeIndex, setActiveModeIndex] = useState(0);
@@ -3701,7 +3701,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
 
       <Canvas
         shadows={perf.contactShadows}
-        dpr={[0.82, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.88 : 0.98)]}
+        dpr={[0.82, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.88 : 1.04)]}
         eventSource={rootRef}
         eventPrefix="client"
         onCreated={(state) => {
@@ -3736,7 +3736,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
           <RendererSettings exposure={exposure} />
           <SceneWarmup enabled={visibleProgress > 0.02} />
 
-          <ambientLight intensity={0.72} />
+          <ambientLight intensity={0.82} />
         <SceneContent
             fogNear={fogNear}
             fogFar={fogFar}
