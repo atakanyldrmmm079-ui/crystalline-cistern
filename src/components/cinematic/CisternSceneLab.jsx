@@ -1870,6 +1870,10 @@ function CrystalBackFog({ portalProgress = 0, activeMode = CRYSTAL_MODES[0] }) {
 
 function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 }) {
   const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")));
+  // Desktop/web keeps the crystal analyze/info panel.
+  // Mobile disables only the internal SceneLab panel to prevent overlap.
+  const allowCrystalInfoPanels = !mobile && showStory && showInfoPanel && showAnalyzePanel && showCrystalInfo && showMobilePanels;
+
   const points = useRef();
   const interactionMeshRef = useRef();
   const hoverStrengthRef = useRef(0);
@@ -1877,7 +1881,7 @@ function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 
   const pointerTargetRef = useRef(new THREE.Vector2(0, 0));
   const pointerUniformRef = useRef(new THREE.Vector2(0, 0));
 
-  const defaultCount = mobile ? 180 : 340;
+  const defaultCount = mobile ? 120 : 220;
 
   const {
     particleEnabled,
@@ -1908,8 +1912,8 @@ function CrystalParticleCloud({ activeMode = CRYSTAL_MODES[0], modePulseKey = 0 
     particleBurstDecay,
   } = useControls("Scattering Particles", {
     particleEnabled: true,
-    particleCount: { value: defaultCount, min: 90, max: 1000, step: 40 },
-    particleOpacity: { value: mobile ? 0.34 : 0.40, min: 0, max: 1, step: 0.01 },
+    particleCount: { value: defaultCount, min: 60, max: 700, step: 20 },
+    particleOpacity: { value: mobile ? 0.28 : 0.32, min: 0, max: 1, step: 0.01 },
     particleSize: { value: 0.058, min: 0.01, max: 0.22, step: 0.001 },
     particleSpeed: { value: 0.28, min: 0, max: 1.4, step: 0.01 },
     particleHeight: { value: 2.95, min: 0.6, max: 7.5, step: 0.05 },
@@ -3635,19 +3639,17 @@ scrollProgress = 0,
   showCrystalInfo = true,
   showMobilePanels = true,
 } = {}) {
-  const allowCrystalInfoPanels = showStory && showInfoPanel && showAnalyzePanel && showCrystalInfo && showMobilePanels;
-
 const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")));
 
   const { autoCamera, exposure, bloom, vignette, fogNear, fogFar, dprMax } =
     useControls("Scene", {
       autoCamera: true,
       exposure: { value: 1.18, min: 0.1, max: 2.4, step: 0.01 },
-      bloom: { value: mobile ? 0.18 : 0.27, min: 0, max: 2, step: 0.01 },
+      bloom: { value: mobile ? 0.10 : 0.14, min: 0, max: 2, step: 0.01 },
       vignette: { value: 0.48, min: 0, max: 1, step: 0.01 },
       fogNear: { value: 8.4, min: 0, max: 25, step: 0.1 },
       fogFar: { value: 38, min: 5, max: 90, step: 0.5 },
-      dprMax: { value: mobile ? 1.1 : 1.25, min: 0.75, max: 1.6, step: 0.05 },
+      dprMax: { value: mobile ? 0.82 : 0.92, min: 0.55, max: 1.15, step: 0.05 },
     });
 
   const storyControls = useControls("Story", {
@@ -3655,13 +3657,13 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
   });
 
   const perf = useControls("CISTERN / PERFORMANCE", {
-    postprocessing: { value: true },
+    postprocessing: { value: false },
     portalDistortion: { value: false },
     contactShadows: { value: false },
     sparkles: { value: true },
-    sparkleCount: { value: mobile ? 0 : 4, min: 0, max: 32, step: 1 },
+    sparkleCount: { value: mobile ? 0 : 0, min: 0, max: 16, step: 1 },
     frameloopAlways: { value: true },
-    lowPowerDpr: { value: mobile ? 1.05 : 1.16, min: 0.75, max: 1.35, step: 0.05 },
+    lowPowerDpr: { value: mobile ? 0.74 : 0.82, min: 0.55, max: 1.0, step: 0.05 },
   });
 
   const [activeModeIndex, setActiveModeIndex] = useState(0);
@@ -3703,7 +3705,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
 
       <Canvas
         shadows={perf.contactShadows}
-        dpr={[0.9, Math.min(dprMax, perf.lowPowerDpr, mobile ? 1.05 : 1.16)]}
+        dpr={[0.62, Math.min(dprMax, perf.lowPowerDpr, mobile ? 0.74 : 0.82)]}
         eventSource={rootRef}
         eventPrefix="client"
         onCreated={(state) => {
@@ -3723,10 +3725,10 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
           near: 0.1,
           far: 80,
         }}
-        frameloop={labOpacity > 0.025 && mapProgress < 0.55 ? "always" : "demand"}
-        performance={{ min: mobile ? 0.46 : 0.58 }}
+        frameloop={labOpacity > 0.03 && mapProgress < 0.45 ? "always" : "demand"}
+        performance={{ min: mobile ? 0.22 : 0.30 }}
         gl={{
-          antialias: true,
+          antialias: false,
           stencil: false,
           depth: true,
           alpha: false,
