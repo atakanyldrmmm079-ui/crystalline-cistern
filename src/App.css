@@ -4458,3 +4458,42 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
   visibility: hidden !important;
   pointer-events: none !important;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* V104 ARCHITECTURE PERFORMANCE                                               */
+/* -------------------------------------------------------------------------- */
+/* Main performance fix: less React re-rendering + no long SceneLab/Map overlap. */
+
+.mouseTrail {
+  display: none !important;
+}
+
+.cisternSceneHost {
+  contain: layout paint size;
+}
+
+.mapRevealLayer {
+  contain: layout paint size;
+}
+
+/* Keep panels readable without expensive blur. */
+.gsapSafeStoryCard,
+.cinematicStoryCard,
+.mapMissionInner,
+.soundToggle {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Small laptop analyze panel safety retained and tightened. */
+@media (max-width: 1366px), (max-height: 760px) {
+  .cisternSceneHost [class*="Analyze" i],
+  .cisternSceneHost [class*="InfoPanel" i],
+  .cisternSceneHost [class*="StoryPanel" i],
+  .cisternSceneHost [class*="Readout" i] {
+    max-width: min(390px, 40vw) !important;
+    max-height: 50vh !important;
+    font-size: clamp(9.5px, 0.78vw, 12px) !important;
+  }
+}
