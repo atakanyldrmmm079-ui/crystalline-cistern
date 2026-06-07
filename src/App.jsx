@@ -3621,7 +3621,7 @@ export default function App() {
   const shouldMountCistern =
     preloaderDone &&
     scroll >= design.cisternEnterStart - 0.055 &&
-    mapProgress < 0.58;
+    mapProgress < 0.32;
 
   const shouldMountMap =
     scroll >= mapVisualStart + 0.038 &&
@@ -3635,7 +3635,7 @@ export default function App() {
   const shouldRenderIntro = introOpacity > 0.012 && cisternOpacity < 0.08 && mapProgress < 0.02;
   const introInteractive = shouldRenderIntro;
   const cisternInteractive = mapProgress < 0.72;
-  const mapInteractive = mapProgress > 0.88;
+  const mapInteractive = mapProgress > 0.22;
   const shouldShowExternalStory = shouldRenderStory;
 return (
     <main
