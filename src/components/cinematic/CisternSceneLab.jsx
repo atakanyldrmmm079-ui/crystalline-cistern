@@ -3621,24 +3621,6 @@ function SceneContent({
 }
 
 export default 
-function tuneTextureForClarity(texture, gl, mobile = false) {
-  if (!texture) return texture;
-
-  const maxAnisotropy =
-    gl?.capabilities?.getMaxAnisotropy?.() ||
-    gl?.getContext?.()?.getParameter?.(gl.getContext().MAX_TEXTURE_MAX_ANISOTROPY_EXT) ||
-    4;
-
-  texture.colorSpace = texture.colorSpace || THREE.SRGBColorSpace;
-  texture.generateMipmaps = true;
-  texture.minFilter = THREE.LinearMipmapLinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.anisotropy = Math.min(mobile ? 8 : 12, maxAnisotropy || 8);
-  texture.needsUpdate = true;
-
-  return texture;
-}
-
 function CisternSceneLab({
 scrollProgress = 0,
   visibleProgress = 1,
@@ -3756,8 +3738,7 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
           <RendererSettings exposure={exposure} />
           <SceneWarmup enabled={visibleProgress > 0.02} />
 
-          <SceneTextureClarityPass mobile={mobile} />
-        <SceneContent
+          <SceneContent
             fogNear={fogNear}
             fogFar={fogFar}
             activeMode={activeMode}
@@ -3876,38 +3857,4 @@ const mobile = (typeof window !== "undefined" && (window.innerWidth < 768 || /An
 
 useGLTF.preload(`${MODEL_BASE}/hero_crystal.glb`);
 useGLTF.preload(PORTAL_ARCH_PATH)
-function SceneTextureClarityPass({ mobile = false }) {
-  const { gl, scene } = useThree();
-  const doneRef = useRef(false);
-
-  useEffect(() => {
-    if (doneRef.current || !scene) return;
-    doneRef.current = true;
-
-    scene.traverse((object) => {
-      if (!object?.isMesh || !object.material) return;
-
-      const materials = Array.isArray(object.material) ? object.material : [object.material];
-
-      materials.forEach((mat) => {
-        [
-          "map",
-          "normalMap",
-          "roughnessMap",
-          "metalnessMap",
-          "emissiveMap",
-          "aoMap",
-          "alphaMap",
-        ].forEach((key) => {
-          if (mat[key]) tuneTextureForClarity(mat[key], gl, mobile);
-        });
-
-        mat.needsUpdate = true;
-      });
-    });
-  }, [gl, scene, mobile]);
-
-  return null;
-}
-
 ;
