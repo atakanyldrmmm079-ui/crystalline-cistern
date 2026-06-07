@@ -4345,3 +4345,116 @@ body .mapLibreCrystalStage .mlLogoMarker.is-active .mlLogoMarkerIcon {
 /* -------------------------------------------------------------------------- */
 /* Removes crystalInfoEnabled runtime variable references.
    Desktop panel is restored; mobile internal crystal panel is gated inside SceneLab with !mobile. */
+
+
+/* -------------------------------------------------------------------------- */
+/* V102 BALANCED INTEL + RESPONSIVE ANALYZE PANEL                              */
+/* -------------------------------------------------------------------------- */
+/* Better approach than v98: keep DPR readable, cut heavy effects instead. */
+
+.cisternSceneHost canvas,
+.introSceneLayer canvas {
+  image-rendering: auto !important;
+}
+
+/* Keep expensive overlays low, but not visually dead. */
+.rainGlass,
+.mouseTrail {
+  display: none !important;
+}
+
+.noise {
+  opacity: 0.008 !important;
+}
+
+.shade {
+  opacity: 0.14 !important;
+}
+
+.gsapSafeStoryCard,
+.mapMissionInner,
+.soundToggle {
+  backdrop-filter: blur(3px) !important;
+  -webkit-backdrop-filter: blur(3px) !important;
+}
+
+/* Crystal analyze / info panel responsive scaling for small laptops. */
+@media (max-width: 1366px), (max-height: 760px) {
+  .cisternSceneHost .crystalAnalyzePanel,
+  .cisternSceneHost .crystalInfoPanel,
+  .cisternSceneHost .crystalStoryPanel,
+  .cisternSceneHost .labStoryPanel,
+  .cisternSceneHost .sceneStoryPanel,
+  .cisternSceneHost .analysisPanel,
+  .cisternSceneHost .analyzePanel,
+  .cisternSceneHost [class*="Analyze" i],
+  .cisternSceneHost [class*="InfoPanel" i],
+  .cisternSceneHost [class*="StoryPanel" i],
+  .cisternSceneHost [class*="Readout" i] {
+    max-width: min(420px, 42vw) !important;
+    max-height: min(54vh, 420px) !important;
+    padding: clamp(12px, 1.2vw, 18px) !important;
+    font-size: clamp(10px, 0.82vw, 13px) !important;
+    line-height: 1.36 !important;
+    overflow: auto !important;
+  }
+
+  .cisternSceneHost .crystalAnalyzePanel h1,
+  .cisternSceneHost .crystalAnalyzePanel h2,
+  .cisternSceneHost .crystalInfoPanel h1,
+  .cisternSceneHost .crystalInfoPanel h2,
+  .cisternSceneHost [class*="Analyze" i] h1,
+  .cisternSceneHost [class*="Analyze" i] h2,
+  .cisternSceneHost [class*="InfoPanel" i] h1,
+  .cisternSceneHost [class*="InfoPanel" i] h2 {
+    font-size: clamp(18px, 1.65vw, 28px) !important;
+    line-height: 1.02 !important;
+  }
+
+  .cisternSceneHost .crystalAnalyzePrompt {
+    transform: translateX(-50%) scale(0.84) !important;
+    bottom: 5.5vh !important;
+  }
+}
+
+/* Very small laptop / projector resolution */
+@media (max-width: 1180px), (max-height: 680px) {
+  .cisternSceneHost .crystalAnalyzePanel,
+  .cisternSceneHost .crystalInfoPanel,
+  .cisternSceneHost .analysisPanel,
+  .cisternSceneHost .analyzePanel,
+  .cisternSceneHost [class*="Analyze" i],
+  .cisternSceneHost [class*="InfoPanel" i],
+  .cisternSceneHost [class*="StoryPanel" i],
+  .cisternSceneHost [class*="Readout" i] {
+    max-width: min(360px, 40vw) !important;
+    max-height: 48vh !important;
+    padding: 10px 12px !important;
+    font-size: 10px !important;
+  }
+
+  .cisternSceneHost [class*="Analyze" i] p,
+  .cisternSceneHost [class*="InfoPanel" i] p,
+  .cisternSceneHost [class*="StoryPanel" i] p,
+  .cisternSceneHost [class*="Readout" i] p {
+    margin: 6px 0 !important;
+  }
+}
+
+/* Mobile remains panel-free internally; only external ACT story. */
+@media (max-width: 900px) {
+  .site.isMobileLayout .cisternSceneHost {
+    filter: saturate(1.03) contrast(1.015) !important;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* V103 REMOVE LOADER SKIP BUTTON                                              */
+/* -------------------------------------------------------------------------- */
+/* Timeout fallback remains active, but the visible SKIP button is hidden. */
+.loaderSkipButton {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
