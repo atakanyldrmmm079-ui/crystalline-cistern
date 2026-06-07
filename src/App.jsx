@@ -2964,16 +2964,7 @@ function CinematicPreloader({ design, onDone }) {
         "--loaderLineOpacity": design.loadingLineOpacity,
       }}
     >
-      <button
-        type="button"
-        className="loaderSkipButton"
-        onClick={finishLoader}
-        aria-label="Skip loading"
-      >
-        SKIP
-      </button>
-
-      <div className="cinematicLoaderTopline">
+<div className="cinematicLoaderTopline">
         <span>CRYSTALLINE NETWORK</span>
         <span>ISTANBUL / 2556</span>
       </div>
@@ -3628,7 +3619,7 @@ export default function App() {
           >
             <Canvas
               camera={{ position: [0, design.cameraY, design.introCameraZ], fov: design.cameraFov }}
-              dpr={[0.7, 0.95]}
+              dpr={[0.82, 1.0]}
               gl={{ antialias: false, stencil: false, alpha: false, powerPreference: "high-performance" }}
               performance={{ min: 0.65 }}
             >
