@@ -3586,7 +3586,7 @@ export default function App() {
           >
             <Canvas
               camera={{ position: [0, design.cameraY, design.introCameraZ], fov: design.cameraFov }}
-              dpr={[0.95, 1.15]}
+              dpr={[0.7, 0.95]}
               gl={{ antialias: false, stencil: false, alpha: false, powerPreference: "high-performance" }}
               performance={{ min: 0.65 }}
             >
@@ -3613,12 +3613,12 @@ export default function App() {
             portalProgress={portalProgress}
             mapProgress={mapProgress}
             designMode={false}
-            showStory={!isMobileViewport}
+            showStory={true}
             showLabel={false}
-            showInfoPanel={!isMobileViewport}
-            showAnalyzePanel={!isMobileViewport}
-            showCrystalInfo={!isMobileViewport}
-            showMobilePanels={false}
+            showInfoPanel={true}
+            showAnalyzePanel={true}
+            showCrystalInfo={true}
+            showMobilePanels={true}
             showLeva={false}
           />
         </div>
