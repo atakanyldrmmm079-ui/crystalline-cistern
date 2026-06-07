@@ -3715,19 +3715,8 @@ export default function App() {
   const introInteractive = shouldRenderIntro;
   const cisternInteractive = mapProgress < 0.72;
   const mapInteractive = mapProgress > 0.94;
-
-  
-  const compactCrystalPanelActive =
-    isCompactViewport &&
-    !isMobileViewport &&
-    labScrollProgress > 0.035 &&
-    labScrollProgress < 0.72 &&
-    mapProgress < 0.24;
-
-  const shouldShowExternalStory =
-    shouldRenderStory && !compactCrystalPanelActive;
-
-  return (
+  const shouldShowExternalStory = shouldRenderStory;
+return (
     <main
       ref={siteRef}
       className={`site storySite act-${activeStory.slug} ${fullNetwork ? "networkComplete" : ""} ${isMobileViewport ? "isMobileLayout" : ""} ${isCompactViewport ? "isCompactLayout" : ""}`}
