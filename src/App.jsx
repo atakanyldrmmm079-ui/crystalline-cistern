@@ -2823,8 +2823,8 @@ function MapMissionOverlay({ scroll, design, activatedNodes, forceVisible = fals
   );
   const fullAt = design.mapMissionFull ?? 0.82;
 
-  // V158: show this panel ONLY on the actual map screen.
-  // Do not show it during ACT 04 / story cards.
+  // V159: show this panel only while the map section is mounted.
+  // No mapProgress threshold; otherwise it disappears during the 3-scroll map section.
   if (!forceVisible) return null;
 
   const enter = 1;
@@ -3759,7 +3759,7 @@ return (
             scroll={scroll}
             design={design}
             activatedNodes={activatedNodes}
-            forceVisible={shouldMountMap && mapProgress > 0.58}
+            forceVisible={shouldMountMap}
           />
         )}
       </section>
