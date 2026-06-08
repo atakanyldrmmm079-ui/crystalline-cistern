@@ -1168,7 +1168,8 @@ export default function MapLibreCrystalMap({
     updateNodeSource(node.id, nextActive);
 
     if (shouldZoom) {
-      mapRef.current?.easeTo({
+      const map = mapRef.current;
+      map?.easeTo({
         center: node.lngLat,
         zoom: detailFromDesign(mapDesignRef.current).zoom,
         pitch: detailFromDesign(mapDesignRef.current).pitch,
@@ -1177,6 +1178,12 @@ export default function MapLibreCrystalMap({
         easing: (t) => t * t * (3 - 2 * t),
         essential: true,
       });
+
+      // Keep absolute logo markers aligned during/after detail camera animation.
+      if (map) {
+        setNodeScreenPositions(projectMapNodes(map));
+        map.once("moveend", () => setNodeScreenPositions(projectMapNodes(map)));
+      }
     }
   }
 
@@ -1216,7 +1223,8 @@ export default function MapLibreCrystalMap({
   function backToMap() {
     setMode(MODES.MAP);
 
-    mapRef.current?.easeTo({
+    const map = mapRef.current;
+    map?.easeTo({
       center: overviewFromDesign(mapDesignRef.current).center,
       zoom: overviewFromDesign(mapDesignRef.current).zoom,
       pitch: overviewFromDesign(mapDesignRef.current).pitch,
@@ -1225,6 +1233,12 @@ export default function MapLibreCrystalMap({
       curve: 1.25,
       essential: true,
     });
+
+    // Restore marker projection after returning to overview.
+    if (map) {
+      setNodeScreenPositions(projectMapNodes(map));
+      map.once("moveend", () => setNodeScreenPositions(projectMapNodes(map)));
+    }
   }
 
   useEffect(() => {
@@ -1281,6 +1295,7 @@ export default function MapLibreCrystalMap({
       map.on("rotate", syncMapOverlays);
       map.on("pitch", syncMapOverlays);
       map.on("resize", syncMapOverlays);
+      map.on("moveend", syncMapOverlays);
       setNodeScreenPositions(projectMapNodes(map));
 
       map.addSource("crystal-nodes", {
@@ -1887,10 +1902,9 @@ export default function MapLibreCrystalMap({
       {mapDesign.logoMarkerEnabled && (
         <div className="mlLogoMarkerLayer" aria-hidden={false}>
           {nodeScreenPositions
-            .filter((node) => mode === MODES.MAP || node.id === current.id)
             .map((node) => {
             const isHovered = hovered === node.id;
-            const isActive = false;
+            const isActive = current.id === node.id || activatedNodes.includes(node.id);
             return (
               <button
                 key={node.id}
