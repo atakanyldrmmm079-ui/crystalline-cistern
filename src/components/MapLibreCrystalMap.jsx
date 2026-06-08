@@ -1007,16 +1007,9 @@ export default function MapLibreCrystalMap({
 
     if (zoomEnabled) {
       map.scrollZoom.enable();
-      map.dragPan.enable();
-      map.touchZoomRotate.enable();
-      map.touchZoomRotate.disableRotation();
     } else {
       map.scrollZoom.disable();
-      map.dragPan.disable();
-      map.touchZoomRotate.disable();
     }
-
-    updateNodeScreenPositions();
   }, [zoomEnabled]);
 
   function updateConnectionSource(nextFocusId = focusId, nextActiveIds = activatedNodesRef.current) {
@@ -1174,11 +1167,21 @@ export default function MapLibreCrystalMap({
     updateConnectionSource(node.id, nextActive);
     updateNodeSource(node.id, nextActive);
 
-    // V148: keep the overview camera stable when a node is selected.
-    // The old detail easeTo centered the map on the clicked node, which made
-    // absolute HTML icons appear to drift and pushed other icons off-screen.
     if (shouldZoom) {
-      updateNodeScreenPositions();
+      const map = mapRef.current;
+      map?.easeTo({
+        center: node.lngLat,
+        zoom: detailFromDesign(mapDesignRef.current).zoom,
+        pitch: detailFromDesign(mapDesignRef.current).pitch,
+        bearing: detailFromDesign(mapDesignRef.current).bearing,
+        duration: 850,
+        easing: (t) => t * t * (3 - 2 * t),
+        essential: true,
+      });
+
+      if (map) {
+        map.once("moveend", updateNodeScreenPositions);
+      }
     }
   }
 
@@ -1230,7 +1233,6 @@ export default function MapLibreCrystalMap({
     });
 
     if (map) {
-      updateNodeScreenPositions();
       map.once("moveend", updateNodeScreenPositions);
     }
   }
@@ -1263,13 +1265,6 @@ export default function MapLibreCrystalMap({
     map.scrollZoom.disable();
     map.scrollZoom.setWheelZoomRate(1 / 450);
 
-    // V151: default map navigation is locked for page scroll stability.
-    // The "Enable Map Zoom" control re-enables scroll zoom + drag pan.
-    map.dragPan.disable();
-    map.dragRotate.disable();
-    map.touchZoomRotate.disable();
-    map.keyboard.disable();
-
     map.on("load", () => {
       map.resize();
       applyMapDesign(map, mapDesignRef.current);
@@ -1287,9 +1282,7 @@ export default function MapLibreCrystalMap({
             updateScreenConnectionOverlay(currentRef.current.id, activatedNodesRef.current);
           }
 
-          const projectedNodes = projectMapNodes(map);
-          syncLogoMarkerDomPositions(projectedNodes);
-          setNodeScreenPositions(projectedNodes);
+          setNodeScreenPositions(projectMapNodes(map));
         });
       };
 
@@ -1298,12 +1291,9 @@ export default function MapLibreCrystalMap({
       map.on("rotate", syncMapOverlays);
       map.on("pitch", syncMapOverlays);
       map.on("resize", syncMapOverlays);
-      map.on("drag", syncMapOverlays);
-      map.on("render", syncMapOverlays);
       map.on("moveend", syncMapOverlays);
-      const initialProjectedNodes = projectMapNodes(map);
-      setNodeScreenPositions(initialProjectedNodes);
-      syncLogoMarkerDomPositions(initialProjectedNodes);
+      map.on("drag", syncMapOverlays);
+      setNodeScreenPositions(projectMapNodes(map));
 
       map.addSource("crystal-nodes", {
         type: "geojson",
@@ -1499,25 +1489,7 @@ export default function MapLibreCrystalMap({
   function updateNodeScreenPositions() {
     const map = mapRef.current;
     if (!map) return;
-    const projected = projectMapNodes(map);
-    setNodeScreenPositions(projected);
-    syncLogoMarkerDomPositions(projected);
-  }
-
-  function syncLogoMarkerDomPositions(projected = null) {
-    const map = mapRef.current;
-    const stage = stageRef.current;
-    if (!map || !stage) return;
-
-    const nodes = projected || projectMapNodes(map);
-
-    nodes.forEach((node) => {
-      const marker = stage.querySelector(`[data-node-id="${node.id}"]`);
-      if (!marker) return;
-
-      marker.style.left = `${node.x}px`;
-      marker.style.top = `${node.y + mapDesignRef.current.logoYOffset}px`;
-    });
+    setNodeScreenPositions(projectMapNodes(map));
   }
 
   function handleMarkerEnter(node) {
@@ -1922,24 +1894,16 @@ export default function MapLibreCrystalMap({
           transform: scale(1.04) !important;
         }
 
-
-        /* V152 IMPERATIVE ICON SYNC */
-        .mlLogoMarker[data-node-id] {
-          position: absolute !important;
-          will-change: left, top;
-        }
       `}</style>
 
       {mapDesign.logoMarkerEnabled && (
         <div className="mlLogoMarkerLayer" aria-hidden={false}>
-          {nodeScreenPositions
-            .map((node) => {
+          {nodeScreenPositions.map((node) => {
             const isHovered = hovered === node.id;
             const isActive = current.id === node.id || activatedNodes.includes(node.id);
             return (
               <button
                 key={node.id}
-                data-node-id={node.id}
                 type="button"
                 className={`mlLogoMarker ${isHovered ? "is-hovered" : ""} ${isActive ? "is-active" : ""} ${mapDesign.hoverRingPulseEnabled ? "is-pulse" : ""}`}
                 style={{
