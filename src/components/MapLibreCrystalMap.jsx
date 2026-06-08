@@ -1168,8 +1168,7 @@ export default function MapLibreCrystalMap({
     updateNodeSource(node.id, nextActive);
 
     if (shouldZoom) {
-      const map = mapRef.current;
-      map?.easeTo({
+      mapRef.current?.easeTo({
         center: node.lngLat,
         zoom: detailFromDesign(mapDesignRef.current).zoom,
         pitch: detailFromDesign(mapDesignRef.current).pitch,
@@ -1178,10 +1177,6 @@ export default function MapLibreCrystalMap({
         easing: (t) => t * t * (3 - 2 * t),
         essential: true,
       });
-
-      if (map) {
-        map.once("moveend", updateNodeScreenPositions);
-      }
     }
   }
 
@@ -1221,8 +1216,7 @@ export default function MapLibreCrystalMap({
   function backToMap() {
     setMode(MODES.MAP);
 
-    const map = mapRef.current;
-    map?.easeTo({
+    mapRef.current?.easeTo({
       center: overviewFromDesign(mapDesignRef.current).center,
       zoom: overviewFromDesign(mapDesignRef.current).zoom,
       pitch: overviewFromDesign(mapDesignRef.current).pitch,
@@ -1231,10 +1225,6 @@ export default function MapLibreCrystalMap({
       curve: 1.25,
       essential: true,
     });
-
-    if (map) {
-      map.once("moveend", updateNodeScreenPositions);
-    }
   }
 
   useEffect(() => {
@@ -1260,6 +1250,9 @@ export default function MapLibreCrystalMap({
     });
 
     mapRef.current = map;
+
+    // V154: avoid MapLibre/browser fallback cursor showing as crosshair/plus.
+    map.getCanvas().style.cursor = "default";
 
     // Default: page scroll remains active. Use the control panel to enable map wheel zoom.
     map.scrollZoom.disable();
@@ -1390,7 +1383,7 @@ export default function MapLibreCrystalMap({
           longPressTimerRef.current = null;
         }
 
-        map.getCanvas().style.cursor = "";
+        map.getCanvas().style.cursor = "default";
         const currentNode = currentRef.current;
         setHovered(null);
         updateConnectionSource(currentNode.id);
@@ -1423,9 +1416,11 @@ export default function MapLibreCrystalMap({
     });
 
     map.on("moveend", () => {
-      if (fullNetworkRef.current) {
-        setNetworkBuildingsActive(true);
-      }
+      // V154: keep network building feature-state disabled.
+      // The 5/5 network activation was triggering heavy repaint/feature-state work
+      // and made the HTML icon overlay appear to drift after all nodes connected.
+      setNetworkBuildingsActive(false);
+      updateNodeScreenPositions();
     });
 
     return () => {
@@ -1448,12 +1443,12 @@ export default function MapLibreCrystalMap({
     updateConnectionSource(focusId, activatedNodes);
     updateNodeSource(focusId, activatedNodes);
 
-    if (fullNetwork) {
-      clearHoveredBuildings();
-      setNetworkBuildingsActive(true);
-    } else {
-      setNetworkBuildingsActive(false);
-    }
+    // V154: do not enable 3D building network feature-state after 5/5.
+    // Connections still complete, but building feature-state repaint stays off
+    // so the projected HTML node icons remain stable.
+    clearHoveredBuildings();
+    setNetworkBuildingsActive(false);
+    updateNodeScreenPositions();
   }, [activatedNodes, focusId, fullNetwork, ready]);
 
   useEffect(() => {
