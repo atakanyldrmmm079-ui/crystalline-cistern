@@ -2815,7 +2815,7 @@ function CinematicStoryLayer({ scroll, design, current, fullNetwork }) {
 
 function MapMissionOverlay({ scroll, design, activatedNodes, forceVisible = false }) {
   const enabled = design.mapMissionEnabled ?? true;
-  if (!enabled) return null;
+  const [hasAppeared, setHasAppeared] = useState(false);
 
   const mapStart = Math.min(
     design.mapMissionStart ?? 0.78,
@@ -2823,17 +2823,29 @@ function MapMissionOverlay({ scroll, design, activatedNodes, forceVisible = fals
   );
   const fullAt = design.mapMissionFull ?? 0.82;
 
-  // Final map interface: fade in once, then stay fixed on screen while the map is active.
-  const shouldBeVisible =
-    forceVisible ||
-    scroll >= Math.max(mapStart - 0.005, (design.mapVisualStart ?? mapStart) - 0.005);
+  // V157: once this panel appears around ACT 04 / network phase, keep it visible.
+  // It should not disappear when the ACT 04 story card fades out.
+  const appearAt = Math.min(
+    design.mapMissionStart ?? 0.78,
+    design.networkStart ?? design.mapMissionStart ?? 0.78,
+    design.mapVisualStart ?? design.mapMissionStart ?? 0.78
+  );
 
+  useEffect(() => {
+    if (!enabled) return;
+    if (forceVisible || scroll >= appearAt - 0.005) {
+      setHasAppeared(true);
+    }
+  }, [enabled, forceVisible, scroll, appearAt]);
+
+  if (!enabled) return null;
+
+  // Final map interface: fade in once, then stay fixed after first appearance.
+  const shouldBeVisible = hasAppeared || forceVisible;
   if (!shouldBeVisible) return null;
 
-  const enter = forceVisible ? 1 : smooth01(range(scroll, mapStart, fullAt));
-  const opacity = forceVisible || scroll >= fullAt
-    ? (design.mapMissionOpacity ?? 0.96)
-    : clamp01(enter * (design.mapMissionOpacity ?? 0.96));
+  const enter = hasAppeared || forceVisible ? 1 : smooth01(range(scroll, mapStart, fullAt));
+  const opacity = design.mapMissionOpacity ?? 0.96;
 
   const activatedCount = activatedNodes.length;
   const total = CISTERNS.length;
@@ -2853,7 +2865,7 @@ function MapMissionOverlay({ scroll, design, activatedNodes, forceVisible = fals
         maxWidth: "calc(100vw - 48px)",
         pointerEvents: "none",
         opacity,
-        transform: forceVisible ? "translate3d(0, 0, 0)" : `translate3d(0, ${(1 - enter) * 10}px, 0)`,
+        transform: "translate3d(0, 0, 0)",
         color: design.storyColor,
         fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
         filter: `drop-shadow(0 0 ${Math.max(10, (design.mapMissionGlow ?? 28) * 0.38)}px ${accent}28)`,
