@@ -1419,7 +1419,7 @@ export default function MapLibreCrystalMap({
       // V154: keep network building feature-state disabled.
       // The 5/5 network activation was triggering heavy repaint/feature-state work
       // and made the HTML icon overlay appear to drift after all nodes connected.
-      setNetworkBuildingsActive(false);
+      setNetworkBuildingsActive(true);
       updateNodeScreenPositions();
     });
 
