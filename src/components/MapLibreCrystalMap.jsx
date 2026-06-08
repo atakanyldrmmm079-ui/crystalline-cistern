@@ -1007,9 +1007,16 @@ export default function MapLibreCrystalMap({
 
     if (zoomEnabled) {
       map.scrollZoom.enable();
+      map.dragPan.enable();
+      map.touchZoomRotate.enable();
+      map.touchZoomRotate.disableRotation();
     } else {
       map.scrollZoom.disable();
+      map.dragPan.disable();
+      map.touchZoomRotate.disable();
     }
+
+    updateNodeScreenPositions();
   }, [zoomEnabled]);
 
   function updateConnectionSource(nextFocusId = focusId, nextActiveIds = activatedNodesRef.current) {
@@ -1256,12 +1263,11 @@ export default function MapLibreCrystalMap({
     map.scrollZoom.disable();
     map.scrollZoom.setWheelZoomRate(1 / 450);
 
-    // V150: icons are HTML overlay markers projected with map.project().
-    // Manual map panning/rotation makes the canvas move while the overlay updates later,
-    // so lock pan/rotate for stable presentation behavior.
+    // V151: default map navigation is locked for page scroll stability.
+    // The "Enable Map Zoom" control re-enables scroll zoom + drag pan.
     map.dragPan.disable();
     map.dragRotate.disable();
-    map.touchZoomRotate.disableRotation();
+    map.touchZoomRotate.disable();
     map.keyboard.disable();
 
     map.on("load", () => {
@@ -1290,6 +1296,8 @@ export default function MapLibreCrystalMap({
       map.on("rotate", syncMapOverlays);
       map.on("pitch", syncMapOverlays);
       map.on("resize", syncMapOverlays);
+      map.on("drag", syncMapOverlays);
+      map.on("render", syncMapOverlays);
       map.on("moveend", syncMapOverlays);
       setNodeScreenPositions(projectMapNodes(map));
 
