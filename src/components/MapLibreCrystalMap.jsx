@@ -1287,7 +1287,9 @@ export default function MapLibreCrystalMap({
             updateScreenConnectionOverlay(currentRef.current.id, activatedNodesRef.current);
           }
 
-          setNodeScreenPositions(projectMapNodes(map));
+          const projectedNodes = projectMapNodes(map);
+          syncLogoMarkerDomPositions(projectedNodes);
+          setNodeScreenPositions(projectedNodes);
         });
       };
 
@@ -1299,7 +1301,9 @@ export default function MapLibreCrystalMap({
       map.on("drag", syncMapOverlays);
       map.on("render", syncMapOverlays);
       map.on("moveend", syncMapOverlays);
-      setNodeScreenPositions(projectMapNodes(map));
+      const initialProjectedNodes = projectMapNodes(map);
+      setNodeScreenPositions(initialProjectedNodes);
+      syncLogoMarkerDomPositions(initialProjectedNodes);
 
       map.addSource("crystal-nodes", {
         type: "geojson",
@@ -1495,7 +1499,25 @@ export default function MapLibreCrystalMap({
   function updateNodeScreenPositions() {
     const map = mapRef.current;
     if (!map) return;
-    setNodeScreenPositions(projectMapNodes(map));
+    const projected = projectMapNodes(map);
+    setNodeScreenPositions(projected);
+    syncLogoMarkerDomPositions(projected);
+  }
+
+  function syncLogoMarkerDomPositions(projected = null) {
+    const map = mapRef.current;
+    const stage = stageRef.current;
+    if (!map || !stage) return;
+
+    const nodes = projected || projectMapNodes(map);
+
+    nodes.forEach((node) => {
+      const marker = stage.querySelector(`[data-node-id="${node.id}"]`);
+      if (!marker) return;
+
+      marker.style.left = `${node.x}px`;
+      marker.style.top = `${node.y + mapDesignRef.current.logoYOffset}px`;
+    });
   }
 
   function handleMarkerEnter(node) {
@@ -1900,6 +1922,12 @@ export default function MapLibreCrystalMap({
           transform: scale(1.04) !important;
         }
 
+
+        /* V152 IMPERATIVE ICON SYNC */
+        .mlLogoMarker[data-node-id] {
+          position: absolute !important;
+          will-change: left, top;
+        }
       `}</style>
 
       {mapDesign.logoMarkerEnabled && (
@@ -1911,6 +1939,7 @@ export default function MapLibreCrystalMap({
             return (
               <button
                 key={node.id}
+                data-node-id={node.id}
                 type="button"
                 className={`mlLogoMarker ${isHovered ? "is-hovered" : ""} ${isActive ? "is-active" : ""} ${mapDesign.hoverRingPulseEnabled ? "is-pulse" : ""}`}
                 style={{
