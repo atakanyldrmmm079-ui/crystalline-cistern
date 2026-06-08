@@ -1419,22 +1419,19 @@ export default function MapLibreCrystalMap({
     
   // V140: prevent detail-mode icon drift.
   // In DETAIL mode only the selected/current node marker remains visible.
-  const visibleMapNodes = useMemo(() => {
-    const nodes =
-      typeof MAP_NODES !== "undefined"
-        ? MAP_NODES
-        : typeof CISTERNS !== "undefined"
-        ? CISTERNS
-        : [];
+  const mapNodesForRender =
+    typeof MAP_NODES !== "undefined"
+      ? MAP_NODES
+      : typeof CISTERNS !== "undefined"
+      ? CISTERNS
+      : [];
 
-    if (mode !== MODES.DETAIL) return nodes;
+  const currentMapNodeId = current?.id || current;
 
-    const activeId = current?.id || current;
-
-    if (!activeId) return nodes;
-
-    return nodes.filter((node) => node.id === activeId);
-  }, [mode, current]);
+  const visibleMapNodes =
+    mode === MODES.DETAIL && currentMapNodeId
+      ? mapNodesForRender.filter((node) => node.id === currentMapNodeId)
+      : mapNodesForRender;
 
   const handleMarkerTouch = (event, node) => {
     event?.preventDefault?.();
