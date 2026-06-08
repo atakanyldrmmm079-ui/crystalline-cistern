@@ -1432,15 +1432,10 @@ export default function MapLibreCrystalMap({
       selectedNode?.id ||
       currentNode?.id ||
       activeNode?.id ||
-      focusedNode?.id ||
-      openNode?.id ||
-      detailNode?.id ||
       selected?.id ||
       selected ||
       current?.id ||
-      current ||
-      active ||
-      activeIdRef?.current;
+      current;
 
     return nodes.filter((node) => node.id === activeId);
   }, [mode, selectedNode, currentNode, activeNode, selected, current]);
@@ -1494,69 +1489,7 @@ export default function MapLibreCrystalMap({
     root.addEventListener("pointerup", onPointerUp, { passive: false });
     root.addEventListener("touchend", onPointerUp, { passive: false });
 
-    
-  // V141_LOCK_ICON_ANCHORS:
-  // Keep marker DOM anchored to each node's lngLat after connect/detail/flyTo.
-  // This does not change map data; it only prevents CSS/transition drift.
-  useEffect(() => {
-    const map = mapRef?.current;
-    const root = containerRef?.current;
-    if (!map || !root) return;
-
-    const nodes = typeof MAP_NODES !== "undefined"
-      ? MAP_NODES
-      : typeof CISTERNS !== "undefined"
-      ? CISTERNS
-      : [];
-
-    const readLngLat = (node) => {
-      if (!node) return null;
-      if (Array.isArray(node.lngLat)) return node.lngLat;
-      if (Array.isArray(node.coordinates)) return node.coordinates;
-      if (Array.isArray(node.coord)) return node.coord;
-      if (typeof node.lng === "number" && typeof node.lat === "number") return [node.lng, node.lat];
-      if (typeof node.longitude === "number" && typeof node.latitude === "number") return [node.longitude, node.latitude];
-      return null;
-    };
-
-    const lock = () => {
-      root.querySelectorAll("[data-node-id]").forEach((el) => {
-        const id = el.getAttribute("data-node-id");
-        const node = nodes.find((item) => item.id === id);
-        const lngLat = readLngLat(node);
-        if (!lngLat) return;
-
-        const point = map.project(lngLat);
-
-        // Only manually position custom non-MapLibre marker roots.
-        // Native .maplibregl-marker roots already get transformed by MapLibre.
-        if (!el.classList.contains("maplibregl-marker")) {
-          el.style.left = `${point.x}px`;
-          el.style.top = `${point.y}px`;
-        }
-
-        el.style.setProperty("--marker-screen-x", `${point.x}px`);
-        el.style.setProperty("--marker-screen-y", `${point.y}px`);
-        el.style.setProperty("--marker-locked", "1");
-      });
-    };
-
-    lock();
-    map.on("move", lock);
-    map.on("zoom", lock);
-    map.on("rotate", lock);
-    map.on("pitch", lock);
-    map.on("moveend", lock);
-
     return () => {
-      map.off("move", lock);
-      map.off("zoom", lock);
-      map.off("rotate", lock);
-      map.off("pitch", lock);
-      map.off("moveend", lock);
-    };
-  }, [mode, selectedNode, currentNode, activeNode, selected, current]);
-return () => {
       root.removeEventListener("pointerup", onPointerUp);
       root.removeEventListener("touchend", onPointerUp);
     };
