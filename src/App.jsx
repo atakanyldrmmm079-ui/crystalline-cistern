@@ -2815,7 +2815,7 @@ function CinematicStoryLayer({ scroll, design, current, fullNetwork }) {
 
 function MapMissionOverlay({ scroll, design, activatedNodes, forceVisible = false }) {
   const enabled = design.mapMissionEnabled ?? true;
-  const [hasAppeared, setHasAppeared] = useState(false);
+  if (!enabled) return null;
 
   const mapStart = Math.min(
     design.mapMissionStart ?? 0.78,
@@ -2823,28 +2823,11 @@ function MapMissionOverlay({ scroll, design, activatedNodes, forceVisible = fals
   );
   const fullAt = design.mapMissionFull ?? 0.82;
 
-  // V157: once this panel appears around ACT 04 / network phase, keep it visible.
-  // It should not disappear when the ACT 04 story card fades out.
-  const appearAt = Math.min(
-    design.mapMissionStart ?? 0.78,
-    design.networkStart ?? design.mapMissionStart ?? 0.78,
-    design.mapVisualStart ?? design.mapMissionStart ?? 0.78
-  );
+  // V158: show this panel ONLY on the actual map screen.
+  // Do not show it during ACT 04 / story cards.
+  if (!forceVisible) return null;
 
-  useEffect(() => {
-    if (!enabled) return;
-    if (forceVisible || scroll >= appearAt - 0.005) {
-      setHasAppeared(true);
-    }
-  }, [enabled, forceVisible, scroll, appearAt]);
-
-  if (!enabled) return null;
-
-  // Final map interface: fade in once, then stay fixed after first appearance.
-  const shouldBeVisible = hasAppeared || forceVisible;
-  if (!shouldBeVisible) return null;
-
-  const enter = hasAppeared || forceVisible ? 1 : smooth01(range(scroll, mapStart, fullAt));
+  const enter = 1;
   const opacity = design.mapMissionOpacity ?? 0.96;
 
   const activatedCount = activatedNodes.length;
@@ -3776,7 +3759,7 @@ return (
             scroll={scroll}
             design={design}
             activatedNodes={activatedNodes}
-            forceVisible={shouldMountMap && mapProgress > 0.02}
+            forceVisible={shouldMountMap && mapProgress > 0.58}
           />
         )}
       </section>
