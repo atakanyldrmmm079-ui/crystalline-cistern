@@ -528,7 +528,25 @@ function addMapTilerTerrain(map, design = MAP_DESIGN_DEFAULTS) {
   });
 }
 
-function addMapTilerBuildings(map, design = MAP_DESIGN_DEFAULTS) {
+function getBuildingPaintColor(design = MAP_DESIGN_DEFAULTS, networkComplete = false) {
+  // 5 node tamamlandığında feature-state kullanmadan bütün bina layer'ını tek renge çeviriyoruz.
+  // Böylece sadece limit kadar bina değil, görünür tüm 3D binalar yanar.
+  if (networkComplete) return design.buildingNetworkColor;
+
+  return [
+    "case",
+    ["boolean", ["feature-state", "network"], false],
+    design.buildingNetworkColor,
+    design.buildingBaseColor,
+  ];
+}
+
+function getBuildingPaintOpacity(design = MAP_DESIGN_DEFAULTS, networkComplete = false) {
+  // Network tamamlanınca renk daha net görünsün diye opaklığı yükseltiyoruz.
+  return networkComplete ? Math.max(design.buildingOpacity, 0.72) : design.buildingOpacity;
+}
+
+function addMapTilerBuildings(map, design = MAP_DESIGN_DEFAULTS, networkComplete = false) {
   const sourceName = getBuildingSourceName(map);
   if (!sourceName) return;
 
@@ -540,7 +558,7 @@ function addMapTilerBuildings(map, design = MAP_DESIGN_DEFAULTS) {
   }
 
   if (map.getLayer("crystal-buildings-3d")) {
-    applyBuildingLayerDesign(map, design);
+    applyBuildingLayerDesign(map, design, networkComplete);
     return;
   }
 
@@ -552,12 +570,7 @@ function addMapTilerBuildings(map, design = MAP_DESIGN_DEFAULTS) {
       type: "fill-extrusion",
       minzoom: design.buildingsMinZoom,
       paint: {
-        "fill-extrusion-color": [
-          "case",
-          ["boolean", ["feature-state", "network"], false],
-          design.buildingNetworkColor,
-          design.buildingBaseColor,
-        ],
+        "fill-extrusion-color": getBuildingPaintColor(design, networkComplete),
         "fill-extrusion-height": [
           "interpolate",
           ["linear"],
@@ -573,7 +586,7 @@ function addMapTilerBuildings(map, design = MAP_DESIGN_DEFAULTS) {
           ["get", "min_height"],
           0,
         ],
-        "fill-extrusion-opacity": design.buildingOpacity,
+        "fill-extrusion-opacity": getBuildingPaintOpacity(design, networkComplete),
       },
     });
   } catch (error) {
@@ -581,18 +594,25 @@ function addMapTilerBuildings(map, design = MAP_DESIGN_DEFAULTS) {
   }
 }
 
-function applyBuildingLayerDesign(map, design = MAP_DESIGN_DEFAULTS) {
-  if (!map.getLayer("crystal-buildings-3d")) return;
+function applyBuildingLayerDesign(
+  map,
+  design = MAP_DESIGN_DEFAULTS,
+  networkComplete = false
+) {
+  if (!map || !map.getLayer("crystal-buildings-3d")) return;
 
   try {
     map.setLayerZoomRange("crystal-buildings-3d", design.buildingsMinZoom, 24);
-    map.setPaintProperty("crystal-buildings-3d", "fill-extrusion-color", [
-      "case",
-      ["boolean", ["feature-state", "network"], false],
-      design.buildingNetworkColor,
-      design.buildingBaseColor,
-    ]);
-    map.setPaintProperty("crystal-buildings-3d", "fill-extrusion-opacity", design.buildingOpacity);
+    map.setPaintProperty(
+      "crystal-buildings-3d",
+      "fill-extrusion-color",
+      getBuildingPaintColor(design, networkComplete)
+    );
+    map.setPaintProperty(
+      "crystal-buildings-3d",
+      "fill-extrusion-opacity",
+      getBuildingPaintOpacity(design, networkComplete)
+    );
   } catch {
     // Ignore unsupported layer updates.
   }
@@ -823,13 +843,18 @@ function applyHoverBuildingLayerDesign(map, design = MAP_DESIGN_DEFAULTS) {
   }
 }
 
-function applyMapDesign(map, design = MAP_DESIGN_DEFAULTS) {
+function applyMapDesign(
+  map,
+  design = MAP_DESIGN_DEFAULTS,
+  networkComplete = false
+) {
   if (!map || !map.getStyle()) return;
+
   restyleMap(map, design);
   addMapTilerTerrain(map, design);
-  addMapTilerBuildings(map, design);
+  addMapTilerBuildings(map, design, networkComplete);
   ensureHoverBuildingLayers(map, design);
-  applyBuildingLayerDesign(map, design);
+  applyBuildingLayerDesign(map, design, networkComplete);
   applyConnectionLayerDesign(map, design);
   applyHoverBuildingLayerDesign(map, design);
   applyNodeLayerDesign(map, design);
@@ -1260,7 +1285,7 @@ export default function MapLibreCrystalMap({
 
     map.on("load", () => {
       map.resize();
-      applyMapDesign(map, mapDesignRef.current);
+      applyMapDesign(map, mapDesignRef.current, fullNetworkRef.current);
 
       ensureConnectionLayers(map, activatedNodesRef.current, currentRef.current.id, mapDesignRef.current);
       updateScreenConnectionOverlay(currentRef.current.id, activatedNodesRef.current);
@@ -1416,10 +1441,13 @@ export default function MapLibreCrystalMap({
     });
 
     map.on("moveend", () => {
-      // V154: keep network building feature-state disabled.
-      // The 5/5 network activation was triggering heavy repaint/feature-state work
-      // and made the HTML icon overlay appear to drift after all nodes connected.
-      setNetworkBuildingsActive(true);
+      // 5 node birleştiyse tüm 3D bina layer'ını yak; değilse normal renge döndür.
+      // Feature-state ile tek tek bina yakmıyoruz, bu yüzden ikon kayması / drift azalır.
+      applyBuildingLayerDesign(
+        map,
+        mapDesignRef.current,
+        fullNetworkRef.current
+      );
       updateNodeScreenPositions();
     });
 
@@ -1443,11 +1471,17 @@ export default function MapLibreCrystalMap({
     updateConnectionSource(focusId, activatedNodes);
     updateNodeSource(focusId, activatedNodes);
 
-    // V154: do not enable 3D building network feature-state after 5/5.
-    // Connections still complete, but building feature-state repaint stays off
-    // so the projected HTML node icons remain stable.
     clearHoveredBuildings();
+
+    // Eski feature-state izlerini temizle, sonra bütün bina layer'ını fullNetwork'e göre boya.
+    // fullNetwork true olduğunda bütün görünür 3D binalar buildingNetworkColor rengine döner.
     setNetworkBuildingsActive(false);
+    applyBuildingLayerDesign(
+      map,
+      mapDesignRef.current,
+      fullNetwork
+    );
+
     updateNodeScreenPositions();
   }, [activatedNodes, focusId, fullNetwork, ready]);
 
@@ -1455,7 +1489,7 @@ export default function MapLibreCrystalMap({
     const map = mapRef.current;
     if (!map || !ready) return;
 
-    applyMapDesign(map, mapDesign);
+    applyMapDesign(map, mapDesign, fullNetworkRef.current);
     updateConnectionSource(focusId, activatedNodesRef.current);
     updateNodeSource(focusId, activatedNodesRef.current);
     updateScreenConnectionOverlay(focusId, activatedNodesRef.current);
@@ -1477,6 +1511,11 @@ export default function MapLibreCrystalMap({
         curve: 1.25,
         essential: true,
       });
+      applyBuildingLayerDesign(
+        map,
+        mapDesignRef.current,
+        fullNetworkRef.current
+      );
       updateNodeScreenPositions();
     }, 120);
   }, [visible]);
