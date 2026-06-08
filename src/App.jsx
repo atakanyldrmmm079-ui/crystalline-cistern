@@ -2813,7 +2813,7 @@ function CinematicStoryLayer({ scroll, design, current, fullNetwork }) {
 
 
 
-function MapMissionOverlay({ scroll, design, activatedNodes }) {
+function MapMissionOverlay({ scroll, design, activatedNodes, forceVisible = false }) {
   const enabled = design.mapMissionEnabled ?? true;
   if (!enabled) return null;
 
@@ -2823,11 +2823,15 @@ function MapMissionOverlay({ scroll, design, activatedNodes }) {
   );
   const fullAt = design.mapMissionFull ?? 0.82;
 
-  // Final map interface: fade in once, then stay visible permanently.
-  if (scroll < Math.max(mapStart - 0.005, (design.mapVisualStart ?? mapStart) - 0.005)) return null;
+  // Final map interface: fade in once, then stay fixed on screen while the map is active.
+  const shouldBeVisible =
+    forceVisible ||
+    scroll >= Math.max(mapStart - 0.005, (design.mapVisualStart ?? mapStart) - 0.005);
 
-  const enter = smooth01(range(scroll, mapStart, fullAt));
-  const opacity = scroll >= fullAt
+  if (!shouldBeVisible) return null;
+
+  const enter = forceVisible ? 1 : smooth01(range(scroll, mapStart, fullAt));
+  const opacity = forceVisible || scroll >= fullAt
     ? (design.mapMissionOpacity ?? 0.96)
     : clamp01(enter * (design.mapMissionOpacity ?? 0.96));
 
@@ -2840,16 +2844,16 @@ function MapMissionOverlay({ scroll, design, activatedNodes }) {
     <aside
       className="mapMissionOverlay persistent alwaysVisible"
       style={{
-        position: "absolute",
+        position: "fixed",
         left: `${design.mapMissionX ?? 4.2}vw`,
         bottom: `${design.mapMissionY ?? 8}vh`,
         top: "auto",
-        zIndex: 9005,
+        zIndex: 30000,
         width: `${Math.min(design.mapMissionWidth ?? 520, 500)}px`,
         maxWidth: "calc(100vw - 48px)",
         pointerEvents: "none",
         opacity,
-        transform: `translate3d(0, ${(1 - enter) * 10}px, 0)`,
+        transform: forceVisible ? "translate3d(0, 0, 0)" : `translate3d(0, ${(1 - enter) * 10}px, 0)`,
         color: design.storyColor,
         fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
         filter: `drop-shadow(0 0 ${Math.max(10, (design.mapMissionGlow ?? 28) * 0.38)}px ${accent}28)`,
@@ -3755,7 +3759,14 @@ return (
         {showIntroInterface && <IntroMinimalInterface introOpacity={introOpacity} />}
 
         {shouldShowExternalStory && <CinematicStoryLayer scroll={scroll} design={design} />}
-        {preloaderDone && <MapMissionOverlay scroll={scroll} design={design} activatedNodes={activatedNodes} />}
+        {preloaderDone && (
+          <MapMissionOverlay
+            scroll={scroll}
+            design={design}
+            activatedNodes={activatedNodes}
+            forceVisible={shouldMountMap && mapProgress > 0.02}
+          />
+        )}
       </section>
 
       <section className="scroll-space storyScrollSpace" aria-hidden="true" style={{ height: `${design.scrollHeightVh}vh` }}>
