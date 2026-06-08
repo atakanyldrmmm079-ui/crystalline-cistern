@@ -859,6 +859,7 @@ export default function MapLibreCrystalMap({
   const lastNetworkBuildingUpdateRef = useRef(0);
   const longPressTimerRef = useRef(null);
   const longPressTriggeredRef = useRef(false);
+  const logoMarkersRef = useRef([]);
 
   const mapDesign = useControls("MAP / PERFORMANCE + DESIGN", {
     "Performance": folder({
@@ -987,6 +988,12 @@ export default function MapLibreCrystalMap({
   useEffect(() => {
     mapDesignRef.current = mapDesign;
   }, [mapDesign]);
+
+  useEffect(() => {
+    syncLogoMarkerClasses(hovered, current, activatedNodes);
+  }, [hovered, current, activatedNodes, mapDesign]);
+
+
 
   useEffect(() => {
     visibleRef.current = visible;
@@ -1168,8 +1175,7 @@ export default function MapLibreCrystalMap({
     updateNodeSource(node.id, nextActive);
 
     if (shouldZoom) {
-      const map = mapRef.current;
-      map?.easeTo({
+      mapRef.current?.easeTo({
         center: node.lngLat,
         zoom: detailFromDesign(mapDesignRef.current).zoom,
         pitch: detailFromDesign(mapDesignRef.current).pitch,
@@ -1178,12 +1184,6 @@ export default function MapLibreCrystalMap({
         easing: (t) => t * t * (3 - 2 * t),
         essential: true,
       });
-
-      // Keep absolute logo markers aligned during/after detail camera animation.
-      if (map) {
-        setNodeScreenPositions(projectMapNodes(map));
-        map.once("moveend", () => setNodeScreenPositions(projectMapNodes(map)));
-      }
     }
   }
 
@@ -1223,8 +1223,7 @@ export default function MapLibreCrystalMap({
   function backToMap() {
     setMode(MODES.MAP);
 
-    const map = mapRef.current;
-    map?.easeTo({
+    mapRef.current?.easeTo({
       center: overviewFromDesign(mapDesignRef.current).center,
       zoom: overviewFromDesign(mapDesignRef.current).zoom,
       pitch: overviewFromDesign(mapDesignRef.current).pitch,
@@ -1233,13 +1232,123 @@ export default function MapLibreCrystalMap({
       curve: 1.25,
       essential: true,
     });
-
-    // Restore marker projection after returning to overview.
-    if (map) {
-      setNodeScreenPositions(projectMapNodes(map));
-      map.once("moveend", () => setNodeScreenPositions(projectMapNodes(map)));
-    }
   }
+
+
+  function syncLogoMarkerClasses(nextHovered = hovered, nextCurrent = current, nextActiveIds = activatedNodesRef.current) {
+    logoMarkersRef.current.forEach(({ element, node }) => {
+      const isHovered = nextHovered === node.id;
+      const isActive = nextCurrent?.id === node.id || nextActiveIds.includes(node.id);
+
+      element.classList.toggle("is-hovered", isHovered);
+      element.classList.toggle("is-active", isActive);
+      element.classList.toggle("is-pulse", !!mapDesignRef.current.hoverRingPulseEnabled);
+
+      element.style.setProperty("--node-color", node.color);
+      element.style.setProperty("--logo-size", `${mapDesignRef.current.logoSize}px`);
+      element.style.setProperty("--logo-hover-size", `${mapDesignRef.current.logoHoverSize}px`);
+      element.style.setProperty("--logo-active-size", `${mapDesignRef.current.logoActiveSize}px`);
+      element.style.setProperty("--logo-opacity", mapDesignRef.current.logoOpacity);
+      element.style.setProperty("--logo-glow", `${mapDesignRef.current.logoGlow}px`);
+      element.style.setProperty("--label-opacity", mapDesignRef.current.logoLabelOpacity);
+    });
+  }
+
+  function clearLogoMarkers() {
+    logoMarkersRef.current.forEach(({ marker }) => {
+      try {
+        marker.remove();
+      } catch {
+        // ignore marker cleanup
+      }
+    });
+    logoMarkersRef.current = [];
+  }
+
+  function createLogoMarkerElement(node) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "mlLogoMarker";
+    button.dataset.nodeId = node.id;
+    button.setAttribute("aria-label", node.name);
+
+    button.style.setProperty("--node-color", node.color);
+    button.style.setProperty("--logo-size", `${mapDesignRef.current.logoSize}px`);
+    button.style.setProperty("--logo-hover-size", `${mapDesignRef.current.logoHoverSize}px`);
+    button.style.setProperty("--logo-active-size", `${mapDesignRef.current.logoActiveSize}px`);
+    button.style.setProperty("--logo-opacity", mapDesignRef.current.logoOpacity);
+    button.style.setProperty("--logo-glow", `${mapDesignRef.current.logoGlow}px`);
+    button.style.setProperty("--label-opacity", mapDesignRef.current.logoLabelOpacity);
+
+    const inner = document.createElement("span");
+    inner.className = "mlLogoMarkerInner";
+
+    const img = document.createElement("img");
+    img.className = "mlLogoMarkerIcon";
+    img.src = getCisternLogoPath(node);
+    img.alt = "";
+    img.draggable = false;
+
+    img.onerror = () => {
+      img.remove();
+      const fallback = document.createElement("span");
+      fallback.className = "mlLogoMarkerFallback";
+      fallback.textContent = node.number;
+      inner.appendChild(fallback);
+    };
+
+    const label = document.createElement("span");
+    label.className = "mlLogoMarkerLabel";
+    label.textContent = node.shortName || node.name;
+
+    inner.appendChild(img);
+    button.appendChild(inner);
+    button.appendChild(label);
+
+    const enter = () => handleMarkerEnter(node);
+    const leave = () => handleMarkerLeave();
+    const down = () => startNodePress(node);
+    const up = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      endNodePress(node);
+    };
+
+    button.addEventListener("mouseenter", enter);
+    button.addEventListener("mouseleave", leave);
+    button.addEventListener("mousedown", down);
+    button.addEventListener("mouseup", up);
+    button.addEventListener("touchstart", down, { passive: true });
+    button.addEventListener("touchend", up, { passive: false });
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+
+    return button;
+  }
+
+  function createLogoMarkers(map) {
+    if (!map || !mapDesignRef.current.logoMarkerEnabled) return;
+
+    clearLogoMarkers();
+
+    logoMarkersRef.current = MAP_CISTERNS.map((node) => {
+      const element = createLogoMarkerElement(node);
+      const marker = new maplibregl.Marker({
+        element,
+        anchor: "center",
+        offset: [0, mapDesignRef.current.logoYOffset],
+      })
+        .setLngLat(node.lngLat)
+        .addTo(map);
+
+      return { marker, element, node };
+    });
+
+    syncLogoMarkerClasses();
+  }
+
 
   useEffect(() => {
     if (mapRef.current || !mapContainer.current) return;
@@ -1295,7 +1404,6 @@ export default function MapLibreCrystalMap({
       map.on("rotate", syncMapOverlays);
       map.on("pitch", syncMapOverlays);
       map.on("resize", syncMapOverlays);
-      map.on("moveend", syncMapOverlays);
       setNodeScreenPositions(projectMapNodes(map));
 
       map.addSource("crystal-nodes", {
@@ -1350,6 +1458,7 @@ export default function MapLibreCrystalMap({
       });
 
       applyNodeLayerDesign(map, mapDesignRef.current);
+      createLogoMarkers(map);
 
       map.on("mousedown", "crystal-node-core", (event) => {
         const id = event.features?.[0]?.properties?.id;
@@ -1897,84 +2006,29 @@ export default function MapLibreCrystalMap({
           transform: scale(1.04) !important;
         }
 
+
+
+        /* V149 NATIVE MAPLIBRE MARKERS */
+        .maplibregl-marker .mlLogoMarker,
+        .mlLogoMarker {
+          position: relative !important;
+          left: auto !important;
+          top: auto !important;
+          transform: none !important;
+          pointer-events: auto !important;
+          touch-action: manipulation !important;
+        }
+
+        .maplibregl-marker {
+          pointer-events: auto !important;
+          z-index: 50;
+        }
+
       `}</style>
 
       {mapDesign.logoMarkerEnabled && (
         <div className="mlLogoMarkerLayer" aria-hidden={false}>
-          {nodeScreenPositions
-            .map((node) => {
-            const isHovered = hovered === node.id;
-            const isActive = current.id === node.id || activatedNodes.includes(node.id);
-            return (
-              <button
-                key={node.id}
-                type="button"
-                className={`mlLogoMarker ${isHovered ? "is-hovered" : ""} ${isActive ? "is-active" : ""} ${mapDesign.hoverRingPulseEnabled ? "is-pulse" : ""}`}
-                style={{
-                  left: node.x,
-                  top: node.y + mapDesign.logoYOffset,
-                  "--node-color": node.color,
-                  "--logo-size": `${mapDesign.logoSize}px`,
-                  "--logo-hover-size": `${mapDesign.logoHoverSize}px`,
-                  "--logo-active-size": `${mapDesign.logoActiveSize}px`,
-                  "--logo-opacity": mapDesign.logoOpacity,
-                  "--logo-glow": `${mapDesign.logoGlow}px`,
-                  "--ring-size": `${mapDesign.hoverRingSize}px`,
-                  "--ring-opacity": mapDesign.hoverRingEnabled ? mapDesign.hoverRingOpacity : 0,
-                  "--ring-thickness": `${mapDesign.hoverRingThickness}px`,
-                  "--ring-glow": `${mapDesign.hoverRingGlow}px`,
-                  "--label-opacity": mapDesign.logoLabelOpacity,
-                }}
-                onMouseEnter={() => handleMarkerEnter(node)}
-                onMouseLeave={handleMarkerLeave}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }}
-                onMouseUp={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  selectNode(node);
-                }}
-                onDoubleClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  openPanorama(node);
-                }}
-                onTouchStart={(event) => {
-                  event.preventDefault();
-                  startNodePress(node);
-                }}
-                onTouchEnd={(event) => {
-                  event.preventDefault();
-                  endNodePress(node);
-                }}
-              >
-                <span className="mlLogoMarkerInner">
-                  <span className="mlLogoMarkerRing" />
-                  <img
-                    className="mlLogoMarkerIcon"
-                    src={getCisternLogoPath(node)}
-                    alt=""
-                    draggable={false}
-                    onError={(event) => {
-                      event.currentTarget.style.display = "none";
-                      const fallback = event.currentTarget.nextElementSibling;
-                      if (fallback) fallback.style.display = "grid";
-                    }}
-                  />
-                  <span className="mlLogoMarkerFallback" style={{ display: "none" }}>{node.number}</span>
-                  {mapDesign.logoLabelVisible && (
-                    <span className="mlLogoMarkerLabel">{node.shortName}</span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
+          {/* V149: logo icons are native MapLibre markers, not absolute React overlay buttons. */}
         </div>
       )}
 
