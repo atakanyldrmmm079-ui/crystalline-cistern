@@ -2823,8 +2823,8 @@ function MapMissionOverlay({ scroll, design, activatedNodes, forceVisible = fals
   );
   const fullAt = design.mapMissionFull ?? 0.82;
 
-  // V159: show this panel only while the map section is mounted.
-  // No mapProgress threshold; otherwise it disappears during the 3-scroll map section.
+  // V160: this panel is controlled only by App's map-section state.
+  // It must not depend on ACT cards, raw scroll thresholds, or viewport layer timing.
   if (!forceVisible) return null;
 
   const enter = 1;
@@ -3754,15 +3754,14 @@ return (
         {showIntroInterface && <IntroMinimalInterface introOpacity={introOpacity} />}
 
         {shouldShowExternalStory && <CinematicStoryLayer scroll={scroll} design={design} />}
-        {preloaderDone && (
-          <MapMissionOverlay
-            scroll={scroll}
-            design={design}
-            activatedNodes={activatedNodes}
-            forceVisible={shouldMountMap}
-          />
-        )}
       </section>
+
+      <MapMissionOverlay
+        scroll={scroll}
+        design={design}
+        activatedNodes={activatedNodes}
+        forceVisible={preloaderDone && shouldMountMap}
+      />
 
       <section className="scroll-space storyScrollSpace" aria-hidden="true" style={{ height: `${design.scrollHeightVh}vh` }}>
         {STORY_ACTS.map((act) => (
